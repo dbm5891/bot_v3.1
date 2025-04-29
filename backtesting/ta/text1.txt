@@ -1,0 +1,34 @@
+list_tuples (360 rows) exported to csv file:
+backtesting/outputs/
+StrategyEachBar_Long_LR_[tp=0.2_sl=100.0]_orders_07-04-2025_15-37-37.csv
+
+
+df_5m: [2022-05-09 11:00:00] to [2023-07-13 02:55:00] (429 days 15:55:00)
+
+{'lost': AutoOrderedDict([('total', 38),
+                          ('pnl',
+                           AutoOrderedDict([('total', -18.620000000000033),
+                                            ('average', -0.4900000000000009),
+                                            ('max', -1.5650000000000261)]))]),
+ 'pnl': AutoOrderedDict([('gross',
+                          AutoOrderedDict([('total', 20.303000000000026),
+                                           ('average', 0.33838333333333376)])),
+                         ('net',
+                          AutoOrderedDict([('total', 20.303000000000026),
+                                           ('average',
+                                            0.33838333333333376)]))]),
+ 'total': AutoOrderedDict([('total', 60), ('open', 0), ('closed', 60)]),
+ 'won': AutoOrderedDict([('total', 22),
+                         ('pnl',
+                          AutoOrderedDict([('total', 38.92300000000006),
+                                           ('average', 1.7692272727272753),
+                                           ('max', 5.109999999999985)]))])}
+strategies: ['StrategyEachBar_Long_LR_[tp=0.2_sl=100.0]']
+Final Portfolio Value ($): 100000.0 -> 100020.3 (trades: 60, PnL: 20.3, average: 0.34)
+pnl (sum): 20.3 (expectancy)
+mean: 0.3384 (average expectancy)
+count total: 60 (100%)
+count win: 22 (36.67%)
+count lost: 38 (63.33%)
+Profit Factor: 2.09
+Runtime: 28.31 seconds

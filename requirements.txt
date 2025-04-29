@@ -1,0 +1,13 @@
+pandas
+pandas-ta
+matplotlib
+mpl-interactions
+scipy
+numpy
+mysql-connector-python
+scikit-learn
+openpyxl
+prettytable
+colorama
+exchange_calendars
+mplfinance

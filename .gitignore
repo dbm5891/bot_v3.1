@@ -1,0 +1,19 @@
+*.pyc
+*.session
+*.log
+bot/csv_data/
+plots/
+plots - Copy/
+plots_pos/
+plots_neg/
+bot/functional/__pycache__/*
+logs/
+scripts/logs
+scripts/outputs/*
+scripts/outputs_sim/*
+scripts/testing/outputs/*
+backtesting/outputs/*
+data_2020_2025/backup
+data_2020_2025/symbols
+data_2020_2025/by_dates
+data_2020_2025/indexes
