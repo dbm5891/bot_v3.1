@@ -21,6 +21,25 @@ This project is the successor to pc2, offering enhanced functionality, improved 
 - **functional/**: Utility modules for data manipulation and file operations
 - **ta/**: Technical analysis modules and indicator comparison tools
 - **scripts/**: Operational and testing scripts
+- **diagrams/**: Architecture diagrams, component diagrams, and supporting documentation for understanding the system's design.
+
+## System Architecture
+
+The system architecture section provides visual representations of the project's design, illustrating how the components interact and function together. These diagrams help users and developers understand the overall structure and relationships within the system.
+
+### High-Level Architecture
+
+The system is designed with modular components to ensure scalability and maintainability. The high-level architecture includes modules for backtesting, technical analysis, data visualization, and trade execution, all interacting seamlessly to provide a robust trading platform.
+
+![High-Level Architecture of Bot v3.1 showing modules for backtesting, technical analysis, data visualization, and trade execution](diagrams/architecture_diagram.png)
+
+### Component Diagram
+
+The component diagram provides an in-depth view of the internal structure, detailing how the modules like backtesting, data preparation, and visualization interconnect to support the trading system's functionality.
+
+![Component Diagram of Bot v3.1 showing internal modules like backtesting, data preparation, and visualization](diagrams/component_diagram.png)
+
+For more detailed information about the architecture diagrams, refer to the [diagrams documentation](diagrams/README.md).
 
 ## Installation
 
