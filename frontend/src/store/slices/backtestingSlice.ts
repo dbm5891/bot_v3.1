@@ -1,30 +1,44 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { mockBacktestResults, isDevelopment } from '../../utils/mockData';
+
+export interface TradeDetail {
+  id?: number;
+  entryDate: string;
+  exitDate: string;
+  entryPrice: number;
+  exitPrice: number;
+  direction: 'long' | 'short';
+  profit: number;
+  profitPercent: number;
+  size?: number;
+  type?: 'buy' | 'sell';
+  profitPct?: number; // Alias for profitPercent for compatibility
+}
 
 export interface BacktestResult {
   id: string;
+  strategyId?: string;
   strategyName: string;
   symbol: string;
   timeframe: string;
   startDate: string;
   endDate: string;
-  initialCapital: number;
-  finalCapital: number;
-  totalReturn: number;
-  annualizedReturn: number;
+  initialBalance?: number;
+  finalBalance?: number;
+  initialCapital?: number;
+  finalCapital?: number;
+  totalReturn?: number;
+  roi?: number;
+  annualizedReturn?: number;
+  maxDrawdown?: number;
   sharpeRatio: number;
-  drawdown: number;
+  drawdown?: number;
   winRate: number;
-  tradesCount: number;
-  trades: {
-    entryDate: string;
-    exitDate: string;
-    entryPrice: number;
-    exitPrice: number;
-    direction: 'long' | 'short';
-    profit: number;
-    profitPercent: number;
-  }[];
+  trades: number;
+  tradesCount?: number; // Alias for trades for compatibility
+  tradesDetails?: TradeDetail[];
+  createdAt?: string;
 }
 
 interface BacktestingState {
@@ -66,10 +80,18 @@ export const fetchBacktestHistory = createAsyncThunk(
   'backtesting/fetchHistory',
   async (_, { rejectWithValue }) => {
     try {
+      // In development, immediately return mock data if needed
+      if (isDevelopment) {
+        console.log("Using mock backtest results");
+        return mockBacktestResults;
+      }
+      
       const response = await axios.get('/api/backtest/history');
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch backtest history');
+      console.warn('Failed to fetch backtest history from API, using mock data', error);
+      return isDevelopment ? mockBacktestResults : 
+        rejectWithValue(error.response?.data?.message || 'Failed to fetch backtest history');
     }
   }
 );

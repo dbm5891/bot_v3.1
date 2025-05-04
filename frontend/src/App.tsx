@@ -11,11 +11,13 @@ import StrategyDetailPage from './pages/StrategyDetailPage';
 import DataManagementPage from './pages/DataManagementPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import MarketDataPage from './pages/MarketDataPage';
 
 import AppLayout from './layouts/AppLayout';
 import NotificationsManager from './components/NotificationsManager';
 import { fetchStrategies } from './store/slices/strategySlice';
 import { fetchAvailableData, fetchAvailableSymbols } from './store/slices/dataSlice';
+import { fetchBacktestHistory } from './store/slices/backtestingSlice';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -26,6 +28,7 @@ function App() {
     dispatch(fetchStrategies());
     dispatch(fetchAvailableData());
     dispatch(fetchAvailableSymbols());
+    dispatch(fetchBacktestHistory());
   }, [dispatch]);
 
   return (
@@ -38,6 +41,7 @@ function App() {
           <Route path="/strategies" element={<StrategiesPage />} />
           <Route path="/strategies/:id" element={<StrategyDetailPage />} />
           <Route path="/data" element={<DataManagementPage />} />
+          <Route path="/market-data" element={<MarketDataPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

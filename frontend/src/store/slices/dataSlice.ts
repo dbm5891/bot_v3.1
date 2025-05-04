@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { mockAvailableData, mockSymbols, isDevelopment } from '../../utils/mockData';
 
 export interface MarketData {
   id: string;
@@ -37,10 +38,18 @@ export const fetchAvailableData = createAsyncThunk(
   'data/fetchAvailable',
   async (_, { rejectWithValue }) => {
     try {
+      // In development, immediately return mock data if needed
+      if (isDevelopment) {
+        console.log("Using mock available data");
+        return mockAvailableData;
+      }
+      
       const response = await axios.get('/api/data/available');
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch available data');
+      console.warn('Failed to fetch available data from API, using mock data', error);
+      return isDevelopment ? mockAvailableData : 
+        rejectWithValue(error.response?.data?.message || 'Failed to fetch available data');
     }
   }
 );
@@ -50,10 +59,18 @@ export const fetchAvailableSymbols = createAsyncThunk(
   'data/fetchSymbols',
   async (_, { rejectWithValue }) => {
     try {
+      // In development, immediately return mock data if needed
+      if (isDevelopment) {
+        console.log("Using mock symbols");
+        return mockSymbols;
+      }
+      
       const response = await axios.get('/api/data/symbols');
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch symbols');
+      console.warn('Failed to fetch symbols from API, using mock data', error);
+      return isDevelopment ? mockSymbols : 
+        rejectWithValue(error.response?.data?.message || 'Failed to fetch symbols');
     }
   }
 );

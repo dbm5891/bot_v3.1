@@ -29,7 +29,8 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon
+  Brightness7 as LightModeIcon,
+  TrendingUp as MarketDataIcon
 } from '@mui/icons-material';
 
 import { RootState } from '../store';
@@ -45,6 +46,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+  { title: 'Market Data', path: '/market-data', icon: <MarketDataIcon /> },
   { title: 'Backtesting', path: '/backtesting', icon: <BacktestingIcon /> },
   { title: 'Strategies', path: '/strategies', icon: <StrategiesIcon /> },
   { title: 'Data Management', path: '/data', icon: <DataIcon /> },

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { mockStrategies, isDevelopment } from '../../utils/mockData';
 
 export interface Strategy {
   id: string;
@@ -39,10 +40,18 @@ export const fetchStrategies = createAsyncThunk(
   'strategy/fetchAll',
   async (_, { rejectWithValue }) => {
     try {
+      // In development, immediately return mock data if needed
+      if (isDevelopment) {
+        logger.debug("Using mock strategies");
+        return mockStrategies;
+      }
+      
       const response = await axios.get('/api/strategies');
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch strategies');
+      console.warn('Failed to fetch strategies from API, using mock data', error);
+      return isDevelopment ? mockStrategies : 
+        rejectWithValue(error.response?.data?.message || 'Failed to fetch strategies');
     }
   }
 );
