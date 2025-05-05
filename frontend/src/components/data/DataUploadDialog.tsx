@@ -15,6 +15,7 @@ import {
   Alert,
   LinearProgress,
   Paper,
+  Grid,
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
@@ -232,45 +233,6 @@ const DataUploadDialog: React.FC<DataUploadDialogProps> = ({ open, onClose, onUp
       </DialogActions>
     </Dialog>
   );
-};
-
-const Grid = ({ container, item, children, xs, sm, md, spacing }: any) => {
-  if (container) {
-    return (
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', mt: -spacing, ml: -spacing }}>
-        {React.Children.map(children, child => React.cloneElement(child, {
-          style: { ...child.props.style, marginTop: spacing * 8, marginLeft: spacing * 8 }
-        }))}
-      </Box>
-    );
-  }
-  
-  if (item) {
-    let width = '100%';
-    
-    if (sm) {
-      width = `${(sm / 12) * 100}%`;
-    }
-    
-    if (md) {
-      width = `${(md / 12) * 100}%`;
-    }
-    
-    return (
-      <Box sx={{ 
-        width,
-        flexShrink: 0,
-        boxSizing: 'border-box',
-        '@media (max-width: 600px)': {
-          width: `${(xs / 12) * 100}%`,
-        }
-      }}>
-        {children}
-      </Box>
-    );
-  }
-  
-  return <Box>{children}</Box>;
 };
 
 export default DataUploadDialog;

@@ -1,324 +1,206 @@
-import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '../store';
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Button,
-  ToggleButtonGroup,
-  ToggleButton,
-  Tooltip
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
 import { 
-  Timeline as TimelineIcon,
-  ShowChart as ShowChartIcon,
-  Leaderboard as LeaderboardIcon,
-} from '@mui/icons-material';
+  Container, 
+  Typography, 
+  Box, 
+  Card, 
+  CardContent, 
+  Button, 
+  Grid, 
+  CircularProgress,
+  Alert,
+  Paper
+} from '@mui/material';
+import { Add as AddIcon, Refresh as RefreshIcon, Settings as SettingsIcon } from '@mui/icons-material';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../store/index';
+import DataTable from '../components/data/DataTable';
+import DataUploadDialog from '../components/data/DataUploadDialog';
+import DataPreprocessingDialog from '../components/data/DataPreprocessingDialog';
+import { fetchAvailableData } from '../store/slices/dataSlice';
 
-import CandlestickChart, { CandlestickData, IndicatorData } from '../components/charts/CandlestickChart';
-import { LineStyle } from 'lightweight-charts';
+// Interface for market data
+interface MarketData {
+  id: string;
+  symbol: string;
+  timeframe: string;
+  startDate: string;
+  endDate: string;
+  recordCount: number;
+  hasIndicators: boolean;
+  appliedIndicators?: string[];
+  lastUpdated: string;
+}
 
-const MarketDataPage = () => {
-  const [selectedSymbol, setSelectedSymbol] = useState<string>('AAPL');
-  const [timeframe, setTimeframe] = useState<string>('1D');
-  const [marketData, setMarketData] = useState<CandlestickData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+// Mock data removed; all data is now handled via Redux.
+
+const MarketDataPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
   
-  // Sample technical indicators
-  const [smaData, setSmaData] = useState<IndicatorData[]>([]);
-  const [emaData, setEmaData] = useState<IndicatorData[]>([]);
+  // Get data from Redux store
+  const { availableData, loading: dataLoading, error: dataError } = useSelector((state: RootState) => state.data);
   
-  // Available symbols (in a real app, this would come from your API)
-  const availableSymbols = ['AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL'];
+  // State management
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [preprocessingDialogOpen, setPreprocessingDialogOpen] = useState(false);
+  const [selectedDataId, setSelectedDataId] = useState<string | null>(null);
   
-  // Available timeframes
-  const availableTimeframes = ['5m', '15m', '30m', '1H', '4H', '1D', '1W'];
-  
+  // Load market data on component mount
   useEffect(() => {
-    // In a real app, this would fetch data from your API based on the selected symbol and timeframe
-    setIsLoading(true);
-    
-    // Simulate API fetch delay
-    setTimeout(() => {
-      // Generate sample candlestick data
-      const sampleData = generateSampleData(selectedSymbol, timeframe, 200);
-      setMarketData(sampleData);
-      
-      // Generate sample SMA indicator
-      setSmaData(generateSMA(sampleData, 20));
-      
-      // Generate sample EMA indicator
-      setEmaData(generateEMA(sampleData, 50));
-      
-      setIsLoading(false);
-    }, 500);
-    
-  }, [selectedSymbol, timeframe]);
-  
-  // Helper function to generate sample candlestick data
-  const generateSampleData = (symbol: string, timeframe: string, count: number): CandlestickData[] => {
-    const data: CandlestickData[] = [];
-    
-    // Use different price ranges for different symbols
-    const basePrices: Record<string, number> = {
-      'AAPL': 180,
-      'MSFT': 320,
-      'TSLA': 240,
-      'AMZN': 140,
-      'GOOGL': 130
-    };
-    
-    const basePrice = basePrices[symbol] || 100;
-    const volatility = 0.02; // 2% daily volatility
-    
-    // Generate timestamp increments based on timeframe
-    const getTimeIncrement = () => {
-      switch(timeframe) {
-        case '5m': return 5 * 60 * 1000;
-        case '15m': return 15 * 60 * 1000;
-        case '30m': return 30 * 60 * 1000;
-        case '1H': return 60 * 60 * 1000;
-        case '4H': return 4 * 60 * 60 * 1000;
-        case '1D': return 24 * 60 * 60 * 1000;
-        case '1W': return 7 * 24 * 60 * 60 * 1000;
-        default: return 24 * 60 * 60 * 1000; // Default to daily
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Dispatch the actual Redux action to fetch data
+        await dispatch(fetchAvailableData());
+        setError(null);
+      } catch (err) {
+        setError('Failed to fetch market data');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    const timeIncrement = getTimeIncrement();
-    
-    // Start from current time and go backwards
-    let currentTime = new Date().getTime();
-    let price = basePrice;
-    
-    for (let i = 0; i < count; i++) {
-      // Generate realistic price movement
-      const change = price * volatility * (Math.random() - 0.5);
-      const open = price;
-      const close = open + change;
-      const high = Math.max(open, close) + Math.abs(change) * Math.random();
-      const low = Math.min(open, close) - Math.abs(change) * Math.random();
-      
-      // Generate volume - higher on price movements
-      const volume = Math.floor(basePrice * 10000 * (1 + Math.abs(change / price) * 5));
-      
-      // For the next iteration
-      price = close;
-      
-      // Add data point
-      data.unshift({
-        time: currentTime / 1000, // Convert to seconds for lightweight-charts
-        open,
-        high,
-        low,
-        close,
-        volume
-      });
-      
-      currentTime -= timeIncrement;
-    }
-    
-    return data;
+    fetchData();
+  }, [dispatch]);
+  
+  // Handle data actions
+  const handleRefresh = () => {
+    dispatch(fetchAvailableData());
   };
   
-  // Generate Simple Moving Average
-  const generateSMA = (data: CandlestickData[], period: number): IndicatorData[] => {
-    if (data.length < period) return [];
-    
-    const sma: IndicatorData[] = [];
-    
-    for (let i = 0; i < data.length; i++) {
-      if (i < period - 1) {
-        // Not enough data points yet
-        continue;
-      }
-      
-      let sum = 0;
-      for (let j = 0; j < period; j++) {
-        sum += data[i - j].close;
-      }
-      
-      sma.push({
-        time: data[i].time,
-        value: sum / period
-      });
-    }
-    
-    return sma;
+  const handleOpenUploadDialog = () => {
+    setUploadDialogOpen(true);
   };
   
-  // Generate Exponential Moving Average
-  const generateEMA = (data: CandlestickData[], period: number): IndicatorData[] => {
-    if (data.length < period) return [];
-    
-    const ema: IndicatorData[] = [];
-    const multiplier = 2 / (period + 1);
-    
-    // Calculate first EMA using SMA
-    let initialSum = 0;
-    for (let i = 0; i < period; i++) {
-      initialSum += data[i].close;
-    }
-    
-    let currentEMA = initialSum / period;
-    
-    ema.push({
-      time: data[period - 1].time,
-      value: currentEMA
-    });
-    
-    // Calculate subsequent EMAs
-    for (let i = period; i < data.length; i++) {
-      currentEMA = (data[i].close - currentEMA) * multiplier + currentEMA;
-      
-      ema.push({
-        time: data[i].time,
-        value: currentEMA
-      });
-    }
-    
-    return ema;
+  const handleCloseUploadDialog = () => {
+    setUploadDialogOpen(false);
   };
+  
+  const handleUploadData = async (formData: FormData) => {
+    try {
+      // In a real implementation, dispatch an action to upload the data
+      console.log('Uploading data...', formData);
+      setUploadDialogOpen(false);
+      // Refresh the data after upload
+      dispatch(fetchAvailableData());
+    } catch (err) {
+      console.error(err);
+      setError('Failed to upload market data');
+    }
+  };
+  
+  const handleOpenPreprocessingDialog = (dataId: string) => {
+    setSelectedDataId(dataId);
+    setPreprocessingDialogOpen(true);
+  };
+  
+  const handleClosePreprocessingDialog = () => {
+    setPreprocessingDialogOpen(false);
+    setSelectedDataId(null);
+  };
+  
+  const handlePreprocessData = async (indicators: string[]) => {
+    if (!selectedDataId) return;
+    
+    try {
+      // In a real implementation, dispatch an action to preprocess the data
+      console.log('Preprocessing data...', selectedDataId, indicators);
+      setPreprocessingDialogOpen(false);
+      // Refresh the data after preprocessing
+      dispatch(fetchAvailableData());
+    } catch (err) {
+      console.error(err);
+      setError('Failed to preprocess data');
+    }
+  };
+  
+  const handleDeleteData = async (dataId: string) => {
+    if (window.confirm('Are you sure you want to delete this data?')) {
+      try {
+        // In a real implementation, dispatch an action to delete the data
+        // Perform deletion logic here
+        // Refresh the data after deletion
+        dispatch(fetchAvailableData());
+      } catch (err) {
+        console.error(err);
+        setError('Failed to delete market data');
+      }
+    }
+  };
+
+  // Find the selected dataset for preprocessing
+  const selectedDataset = availableData.find(d => d.id === selectedDataId);
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Market Data</Typography>
-      </Box>
-      
-      <Grid container spacing={3}>
-        {/* Chart Controls */}
-        <Grid item xs={12}>
-          <Card>
-            <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center', py: 1 }}>
-              <FormControl size="small" sx={{ width: 150 }}>
-                <InputLabel>Symbol</InputLabel>
-                <Select
-                  value={selectedSymbol}
-                  onChange={(e) => setSelectedSymbol(e.target.value as string)}
-                  label="Symbol"
-                >
-                  {availableSymbols.map((symbol) => (
-                    <MenuItem key={symbol} value={symbol}>
-                      {symbol}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <ToggleButtonGroup
-                value={timeframe}
-                exclusive
-                onChange={(_, value) => value && setTimeframe(value)}
-                size="small"
-              >
-                {availableTimeframes.map((tf) => (
-                  <ToggleButton key={tf} value={tf}>
-                    {tf}
-                  </ToggleButton>
-                ))}
-              </ToggleButtonGroup>
-              
-              <Box sx={{ flexGrow: 1 }} />
-              
-              <Tooltip title="View in TradingView (coming soon)">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<ShowChartIcon />}
-                >
-                  TradingView
-                </Button>
-              </Tooltip>
-              
-              <Tooltip title="Download Data (coming soon)">
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  startIcon={<LeaderboardIcon />}
-                >
-                  Download
-                </Button>
-              </Tooltip>
-            </CardContent>
-          </Card>
+    <Container maxWidth="xl">
+      <Box sx={{ my: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Market Data Management
+        </Typography>
+        
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              startIcon={<AddIcon />}
+              onClick={handleOpenUploadDialog}
+            >
+              Import Data
+            </Button>
+          </Grid>
+          <Grid item>
+            <Button 
+              variant="outlined" 
+              startIcon={<RefreshIcon />}
+              onClick={handleRefresh}
+              disabled={dataLoading || isLoading}
+            >
+              Refresh
+            </Button>
+          </Grid>
         </Grid>
         
-        {/* Main Chart Area */}
-        <Grid item xs={12}>
-          <Card>
-            <CardHeader 
-              title={`${selectedSymbol} (${timeframe})`} 
-              subheader={isLoading ? "Loading..." : "Last updated: " + new Date().toLocaleString()}
-              action={
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<TimelineIcon />}
-                >
-                  More Indicators
-                </Button>
-              }
+        {(error || dataError) && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || dataError}
+          </Alert>
+        )}
+        
+        <Paper elevation={2} sx={{ mb: 4, p: 0 }}>
+          {(dataLoading || isLoading) ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <DataTable 
+              data={availableData} 
+              onPreprocess={handleOpenPreprocessingDialog}
+              onDelete={handleDeleteData}
             />
-            <Divider />
-            <CardContent sx={{ height: 600, p: 1 }}>
-              {!isLoading && marketData.length > 0 && (
-                <CandlestickChart 
-                  data={marketData} 
-                  title={`${selectedSymbol} (${timeframe})`}
-                  height={550}
-                  showVolume={true}
-                  indicators={[
-                    {
-                      type: 'sma',
-                      name: 'SMA 20',
-                      data: smaData,
-                      visible: true,
-                      color: '#2962FF',
-                      width: 1.5,
-                      style: LineStyle.Solid,
-                      periods: 20
-                    },
-                    {
-                      type: 'ema',
-                      name: 'EMA 50',
-                      data: emaData,
-                      visible: true,
-                      color: '#FF6D00',
-                      width: 1.5,
-                      style: LineStyle.Dashed,
-                      periods: 50
-                    }
-                  ]}
-                />
-              )}
-              
-              {isLoading && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%',
-                  }}
-                >
-                  <Typography variant="h6">Loading market data...</Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+          )}
+        </Paper>
+      </Box>
+      
+      {/* Data Upload Dialog */}
+      <DataUploadDialog
+        open={uploadDialogOpen}
+        onClose={handleCloseUploadDialog}
+        onUpload={handleUploadData}
+      />
+      
+      {/* Data Preprocessing Dialog */}
+      <DataPreprocessingDialog
+        open={preprocessingDialogOpen}
+        onClose={handleClosePreprocessingDialog}
+        onPreprocess={handlePreprocessData}
+        dataId={selectedDataId}
+        dataset={selectedDataset}
+      />
+    </Container>
   );
 };
 

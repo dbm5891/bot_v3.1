@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Box, Typography, ButtonGroup, Button, FormControlLabel, Switch, Tooltip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { createChart, IChartApi, ISeriesApi, LineStyle, TimeScaleOptions, CrosshairMode, CandlestickSeriesOptions, DeepPartial, ChartOptions, SeriesMarker, Time } from 'lightweight-charts';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { Box, Typography, ButtonGroup, Button, FormControlLabel, Switch, Tooltip } from '@mui/material';
+import { createChart, IChartApi, ISeriesApi, LineStyle, CrosshairMode, Time } from 'lightweight-charts';
 
 // Define types for candlestick data
 export interface CandlestickData {
@@ -76,7 +76,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const [showIndicators, setShowIndicators] = useState(true);
   
   // Filter data for selected time range
-  const getFilteredData = () => {
+  const getFilteredData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
     if (selectedRange === 'ALL') return data;
@@ -96,11 +96,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       const itemDate = typeof item.time === 'string' ? new Date(item.time) : new Date(item.time as number * 1000);
       return itemDate >= cutoffDate;
     });
-  };
+  }, [data, selectedRange]);
   
   // Calculate price stats
   const getPriceStats = () => {
-    if (!data || data.length === 0) return { change: 0, changePercent: 0 };
+    if (!data || data.length === 0) return { change: 0, changePercent: 0, isPositive: false };
     
     const filteredData = getFilteredData();
     const firstCandle = filteredData[0];
@@ -115,8 +115,19 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       isPositive: change >= 0,
     };
   };
-  
-  // Initialize chart
+
+  // Memoize formatted data for candlestick series
+  const formattedData = useMemo(() => 
+    getFilteredData.map((item: CandlestickData) => ({
+      time: item.time as Time,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.close,
+    })), 
+    [getFilteredData]
+  );
+
   useEffect(() => {
     if (chartContainerRef.current && data.length > 0) {
       // Remove existing chart if it exists
@@ -142,8 +153,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         },
         crosshair: {
           mode: CrosshairMode.Normal,
-          horzLine: { visible: true, labelVisible: true },
           vertLine: { visible: true, labelVisible: true, style: LineStyle.Dashed },
+          horzLine: { visible: true, labelVisible: true },
         },
         timeScale: {
           rightOffset: 5,
@@ -157,10 +168,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         },
         rightPriceScale: {
           borderColor: 'rgba(0, 0, 0, 0.06)',
-          scaleMargins: {
-            top: 0.1,
-            bottom: showVolume ? 0.2 : 0.1,
-          },
         },
         handleScroll: {
           vertTouchDrag: false,
@@ -177,7 +184,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       });
       
       // Format and set data
-      const formattedData = filteredData.map((item) => ({
+      const formattedData = getFilteredData().map((item) => ({
         time: item.time as Time,
         open: item.open,
         high: item.high,
@@ -197,10 +204,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
             type: 'volume',
           },
           priceScaleId: 'volume',
-          scaleMargins: {
-            top: 0.8,
-            bottom: 0,
-          },
         });
         
         // Format and set volume data

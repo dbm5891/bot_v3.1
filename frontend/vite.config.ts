@@ -11,7 +11,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Development server port set to 3000 to standardize local development and avoid conflicts with other services.
+        port: 3000,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
