@@ -1,6 +1,21 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { mockStrategies, isDevelopment } from '../../utils/mockData';
+import logger from '../../utils/logger'; // Ensure logger is properly imported
+
+// Helper function to handle isDevelopment logic
+const handleDevelopmentMode = <T>(
+  devLogic: () => T,
+  errorMessage: string,
+  rejectWithValue: (value: any) => any
+): T | ReturnType<typeof rejectWithValue> => {
+  try {
+    logger.info(errorMessage);
+    return devLogic();
+  } catch (error) {
+    return rejectWithValue(error);
+  }
+};
 
 export interface Strategy {
   id: string;
@@ -42,14 +57,17 @@ export const fetchStrategies = createAsyncThunk(
     try {
       // In development, immediately return mock data if needed
       if (isDevelopment) {
-        logger.debug("Using mock strategies");
-        return mockStrategies;
+        return handleDevelopmentMode(
+          () => mockStrategies,
+          "Using mock strategies",
+          rejectWithValue
+        );
       }
       
       const response = await axios.get('/api/strategies');
       return response.data;
     } catch (error: any) {
-      console.warn('Failed to fetch strategies from API, using mock data', error);
+      logger.error('Failed to fetch strategies from API, using mock data', error);
       return isDevelopment ? mockStrategies : 
         rejectWithValue(error.response?.data?.message || 'Failed to fetch strategies');
     }
@@ -61,6 +79,19 @@ export const fetchStrategy = createAsyncThunk(
   'strategy/fetchOne',
   async (strategyId: string, { rejectWithValue }) => {
     try {
+      // In development, find the strategy in mock data
+      if (isDevelopment) {
+        return handleDevelopmentMode(
+          () => {
+            const strategy = mockStrategies.find(s => s.id === strategyId);
+            if (!strategy) throw new Error('Strategy not found');
+            return strategy;
+          },
+          `Using mock strategy data for ID: ${strategyId}`,
+          rejectWithValue
+        );
+      }
+      
       const response = await axios.get(`/api/strategies/${strategyId}`);
       return response.data;
     } catch (error: any) {
@@ -87,6 +118,24 @@ export const updateStrategy = createAsyncThunk(
   'strategy/update',
   async ({ id, data }: { id: string; data: Partial<Strategy> }, { rejectWithValue }) => {
     try {
+      // In development, simulate update by returning the data with updated timestamp
+      if (isDevelopment) {
+        return handleDevelopmentMode(
+          () => {
+            const originalStrategy = mockStrategies.find(s => s.id === id);
+            if (!originalStrategy) throw new Error('Original strategy not found');
+            return {
+              ...originalStrategy,
+              ...data,
+              id,
+              updatedAt: new Date().toISOString()
+            } as Strategy;
+          },
+          `Updating mock strategy: ${id}`,
+          rejectWithValue
+        );
+      }
+      
       const response = await axios.put(`/api/strategies/${id}`, data);
       return response.data;
     } catch (error: any) {
