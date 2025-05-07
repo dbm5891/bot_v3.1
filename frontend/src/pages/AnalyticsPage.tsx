@@ -1,83 +1,88 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Card, 
-  CardContent, 
-  CardHeader,
-  Divider,
-  FormControl, 
-  InputLabel, 
-  Select, 
-  SelectChangeEvent,
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Box,
+  Typography,
+  Paper,
+  Grid,
+  Select,
   MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  useTheme,
+  alpha,
+  Tooltip,
+  IconButton,
+  ToggleButtonGroup,
+  ToggleButton,
+  FormControlLabel,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Tabs,
-  Tab,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Switch,
-  FormControlLabel,
-  ToggleButtonGroup,
-  ToggleButton
 } from '@mui/material';
 import {
-  CalendarToday as CalendarIcon,
+  Settings as SettingsIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon,
+  Fullscreen as FullscreenIcon,
+  MoreVert as MoreVertIcon,
   ShowChart as ShowChartIcon,
-  CompareArrows as CompareIcon,
-  DateRange as DateRangeIcon,
   BarChart as BarChartIcon,
-  PieChart as PieChartIcon
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  Remove as NeutralIcon,
+  // AccountBalanceWallet as WalletIcon, // Removed unused import
+  // Assessment as AssessmentIcon, // Removed unused import
+  // Timeline as TimelineIcon, // Removed unused import
+  PieChart as PieChartIcon,
+  CalendarToday as CalendarIcon, // Added CalendarIcon
+  Info as InfoIcon // Added InfoIcon
 } from '@mui/icons-material';
-
-import { RootState, AppDispatch } from '../store';
-import { fetchStrategies } from '../store/slices/strategySlice';
-import { fetchBacktestHistory } from '../store/slices/backtestingSlice';
-
-// Import a chart component - assuming you have react-chartjs-2 installed
-// If not, you'll need to install it: npm install chart.js react-chartjs-2
-import {
-  Line,
-  Bar,
-  Pie
-} from 'react-chartjs-2';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Title,
-  Tooltip,
-  Legend,
   BarElement,
-  ArcElement
+  Title,
+  Tooltip as ChartTooltip,
+  Legend,
+  Filler,
+  TimeScale,
+  TimeSeriesScale,
+  // ChartTypeRegistry // Removed unused import
 } from 'chart.js';
+import 'chartjs-adapter-date-fns';
+import CryptoJS from 'crypto-js'; // Added CryptoJS import
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store';
+import { colors } from '../theme';
+import { createChartConfig } from '../utils/chartConfig'; // Corrected import
+import { SelectChangeEvent } from '@mui/material/Select'; // Added SelectChangeEvent
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
   BarElement,
-  ArcElement,
   Title,
-  Tooltip,
-  Legend
+  ChartTooltip,
+  Legend,
+  Filler,
+  TimeScale,
+  TimeSeriesScale
 );
-
-import CryptoJS from 'crypto-js';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -87,6 +92,7 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
+  const theme = useTheme(); // Added useTheme hook
 
   return (
     <div
@@ -97,7 +103,7 @@ function TabPanel(props: TabPanelProps) {
       {...other }
     >
       {value === index && (
-        <Box sx={{ py: 3 }}>
+        <Box sx={{ py: 2, backgroundColor: alpha(theme.palette.background.default, 0.5), borderRadius: theme.shape.borderRadius }}>
           {children}
         </Box>
       )}
@@ -105,25 +111,299 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const AnalyticsPage = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { strategies } = useSelector((state: RootState) => state.strategy);
-  const { results: backtestResults, loading: backtestLoading } = useSelector((state: RootState) => state.backtesting);
+const hashCode = (str: string) => {
+  const hash = CryptoJS.SHA256(str).toString(CryptoJS.enc.Hex);
+  return parseInt(hash.slice(0, 8), 16);
+};
 
-  // State for tabs
+interface StatCardProps { // Added StatCardProps type
+  title: string;
+  value: string;
+  trend: 'up' | 'down' | 'neutral';
+  icon?: React.ReactElement;
+  period: string;
+  onSettingsClick?: () => void;
+}
+
+const StatCard = ({ title, value, trend, icon, period, onSettingsClick }: StatCardProps) => { // Added StatCardProps type
+  const theme = useTheme();
+  const trendColor = trend === 'up' ? theme.palette.success.main :
+                   trend === 'down' ? theme.palette.error.main :
+                   theme.palette.text.secondary;
+
+  return (
+    <Card 
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        borderRadius: theme.shape.borderRadius, // Consistent border radius
+        boxShadow: theme.shadows[2], // Softer initial shadow
+        transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: `${theme.shadows[6]}, 0 0 15px ${alpha(theme.palette.primary.main, 0.3)}`, // Lift and glow
+          borderColor: theme.palette.primary.main,
+        },
+        border: `1px solid transparent`, // For hover effect
+      }}
+    >
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Typography variant="subtitle1" color="textSecondary" gutterBottom>
+            {title}
+          </Typography>
+          {icon && React.cloneElement(icon, { sx: { fontSize: 28, color: theme.palette.primary.main } })}
+        </Box>
+        <Typography variant="h4" component="div" sx={{ fontWeight: 'bold', my: 1 }}>
+          {value}
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', color: trendColor }}>
+          {trend === 'up' && <TrendingUpIcon sx={{ mr: 0.5 }} />}
+          {trend === 'down' && <TrendingDownIcon sx={{ mr: 0.5 }} />}
+          {trend === 'neutral' && <NeutralIcon sx={{ mr: 0.5 }} />}
+          <Typography variant="body2">
+            {period}
+          </Typography>
+        </Box>
+      </CardContent>
+      {onSettingsClick && (
+        <Box sx={{ p: 1, textAlign: 'right' }}>
+          <Button 
+            size="small" 
+            startIcon={<SettingsIcon />} 
+            onClick={onSettingsClick}
+            sx={{
+              textTransform: 'none',
+              color: theme.palette.text.secondary,
+              borderRadius: theme.shape.borderRadius, // Consistent border radius
+              padding: '4px 8px',
+              fontWeight: 500,
+              backgroundColor: alpha(theme.palette.action.hover, 0.05),
+              boxShadow: theme.shadows[1],
+              transition: 'background-color 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                color: theme.palette.primary.main,
+                boxShadow: `${theme.shadows[3]}, 0 0 8px ${alpha(theme.palette.primary.main, 0.2)}`, // Enhanced hover shadow
+              }
+            }}
+          >
+            Settings
+          </Button>
+        </Box>
+      )}
+    </Card>
+  );
+};
+
+interface HeaderFilterBarProps { // Added HeaderFilterBarProps type
+  selectedStrategies: string[];
+  handleStrategyChange: (event: SelectChangeEvent<string[]>) => void;
+  timeRange: string;
+  handleTimeRangeChange: (event: SelectChangeEvent<string>) => void;
+  onRefresh: () => void;
+}
+
+const HeaderFilterBar = ({ selectedStrategies, handleStrategyChange, timeRange, handleTimeRangeChange, onRefresh }: HeaderFilterBarProps) => {
+  const theme = useTheme();
+  // Assuming strategiesList is fetched or defined elsewhere
+  const strategiesList = [
+    { id: 'strategy1', name: 'Momentum Strategy' },
+    { id: 'strategy2', name: 'Mean Reversion Strategy' },
+    { id: 'strategy3', name: 'Arbitrage Strategy' },
+  ];
+
+  return (
+    <Paper 
+      elevation={0} 
+      sx={{
+        p: 2,
+        mb: 3,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        borderRadius: theme.shape.borderRadius, // Consistent border radius
+        // backgroundColor: alpha(theme.palette.background.default, 0.7), // Slightly transparent background
+        // backdropFilter: 'blur(5px)', // Frosted glass effect if desired
+        boxShadow: theme.shadows[1], // Subtle shadow for depth
+      }}
+    >
+      <FormControl fullWidth sx={{ minWidth: 200 }}>
+        <InputLabel id="strategy-select-label">Strategies</InputLabel>
+        <Select
+          labelId="strategy-select-label"
+          multiple
+          value={selectedStrategies}
+          onChange={handleStrategyChange}
+          label="Strategies"
+          // renderValue={(selected) => selected.join(', ')} // Could customize display
+        >
+          {strategiesList.map((strategy) => (
+            <MenuItem key={strategy.id} value={strategy.id}>
+              {strategy.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl sx={{ minWidth: 120 }}>
+        <InputLabel id="time-range-label">Time Range</InputLabel>
+        <Select
+          labelId="time-range-label"
+          value={timeRange}
+          onChange={handleTimeRangeChange}
+          label="Time Range"
+        >
+          <MenuItem value="1M">1 Month</MenuItem>
+          <MenuItem value="3M">3 Months</MenuItem>
+          <MenuItem value="6M">6 Months</MenuItem>
+          <MenuItem value="1Y">1 Year</MenuItem>
+          <MenuItem value="YTD">Year-to-Date</MenuItem>
+          <MenuItem value="ALL">All Time</MenuItem>
+        </Select>
+      </FormControl>
+
+      <Tooltip title="Refresh Data">
+        <IconButton 
+          onClick={onRefresh} 
+          sx={{
+            color: theme.palette.primary.main,
+            backgroundColor: alpha(theme.palette.primary.main, 0.05),
+            transition: 'background-color 0.2s',
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.15),
+            }
+          }}
+        >
+          <RefreshIcon />
+        </IconButton>
+      </Tooltip>
+    </Paper>
+  );
+};
+
+const ChartToolbar = ({ 
+  title, 
+  onRefresh,
+  chartType,
+  onChartTypeChange,
+  showBenchmark, 
+  onShowBenchmarkChange 
+}: {
+  title: string;
+  onRefresh: () => void;
+  chartType: string;
+  onChartTypeChange: (event: React.MouseEvent<HTMLElement>, newValue: string | null) => void;
+  showBenchmark: boolean;
+  onShowBenchmarkChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}) => {
+  const theme = useTheme();
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      p: 2,
+      borderBottom: `1px solid ${colors.border}`
+    }}>
+      <Typography variant="subtitle1" fontWeight={600}>
+        {title}
+      </Typography>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showBenchmark}
+              onChange={onShowBenchmarkChange}
+              color="primary"
+              size="small"
+            />
+          }
+          label="Benchmark"
+          sx={{ 
+            '& .MuiFormControlLabel-label': { 
+              fontSize: '0.85rem',
+              color: 'text.secondary'
+            } 
+          }}
+        />
+        <ToggleButtonGroup
+          value={chartType}
+          exclusive
+          onChange={onChartTypeChange}
+          aria-label="chart type"
+          size="small"
+          sx={{
+            '& .MuiToggleButton-root': {
+              px: 1.25, 
+              py: 0.5,
+              borderColor: colors.border,
+              color: theme.palette.text.secondary,
+              transition: theme.transitions.create(['background-color', 'color', 'border-color'], {duration: theme.transitions.duration.short}),
+              borderRadius: theme.shape.borderRadius / 1.5,
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.action.hover, 0.1),
+                color: theme.palette.text.primary,
+              },
+              '&.Mui-selected': {
+                backgroundColor: alpha(colors.primary, 0.12),
+                color: colors.primary,
+                borderColor: alpha(colors.primary, 0.5),
+                '&:hover': {
+                  backgroundColor: alpha(colors.primary, 0.2),
+                },
+              },
+            },
+          }}
+        >
+          <ToggleButton value="line" aria-label="line chart">
+            <ShowChartIcon fontSize="small" />
+          </ToggleButton>
+          <ToggleButton value="bar" aria-label="bar chart">
+            <BarChartIcon fontSize="small" />
+          </ToggleButton>
+        </ToggleButtonGroup>
+        <Tooltip title="Refresh data">
+          <IconButton size="small" onClick={onRefresh} sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
+            <RefreshIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Download chart">
+          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
+            <DownloadIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Fullscreen">
+          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
+            <FullscreenIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="More options">
+          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+};
+
+const AnalyticsPage = () => {
+  const theme = useTheme();
+  const chartRef = useRef<any>(null);
+  const dispatch = useDispatch();
+  const { strategies } = useSelector((state: RootState) => state.strategy);
+  // const { results: backtestResults, loading: backtestLoading } = useSelector((state: RootState) => state.backtesting); // Commented out unused variables
+
   const [tabValue, setTabValue] = useState(0);
-  
-  // State for chart filters
   const [selectedTimeRange, setSelectedTimeRange] = useState('1y');
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
   const [chartType, setChartType] = useState('line');
   const [showBenchmark, setShowBenchmark] = useState(true);
 
-  // State for comparison settings
-  const [baseStrategy, setBaseStrategy] = useState<string>('');
-  const [comparisonStrategies, setComparisonStrategies] = useState<string[]>([]);
-
-  // Performance metrics
   const [performanceMetrics, setPerformanceMetrics] = useState<{
     totalReturn: number;
     maxDrawdown: number;
@@ -142,31 +422,72 @@ const AnalyticsPage = () => {
     profitFactor: 0
   });
 
-  // Synthetic performance data
   const [performanceData, setPerformanceData] = useState<any[]>([]);
   const [benchmarkData, setBenchmarkData] = useState<any[]>([]);
   
-  // Fetch strategies and backtest results on component mount
+  // Mock Redux actions and selectors for now
+  const fetchStrategies = () => ({ type: 'FETCH_STRATEGIES' });
+  const fetchBacktestHistory = () => ({ type: 'FETCH_BACKTEST_HISTORY' });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const generatePerformanceData = (_timeRange: string) => { // Added type for timeRange, prefixed with _ as it's unused in mock
+    // This is a placeholder. Replace with actual data generation logic.
+    const data = [
+      { date: '2023-01-01', value: 10000, monthlyReturn: 0 },
+      { date: '2023-02-01', value: 10200, monthlyReturn: 2 },
+      { date: '2023-03-01', value: 10100, monthlyReturn: -1 },
+      { date: '2023-04-01', value: 10500, monthlyReturn: 4 },
+    ];
+    const benchmark = [
+      { date: '2023-01-01', value: 9000 },
+      { date: '2023-02-01', value: 9100 },
+      { date: '2023-03-01', value: 9050 },
+      { date: '2023-04-01', value: 9200 },
+    ];
+    return {
+      data,
+      benchmarkData: benchmark,
+      metrics: {
+        totalReturn: 5.0,
+        maxDrawdown: -1.0,
+        sharpeRatio: 1.5,
+        winRate: 75.0,
+        avgWin: 300,
+        avgLoss: -100,
+        profitFactor: 3.0
+      }
+    };
+  };
+  // End of mock Redux actions and selectors
+
   useEffect(() => {
     dispatch(fetchStrategies());
     dispatch(fetchBacktestHistory());
   }, [dispatch]);
   
-  // Set default selected strategy when strategies load
   useEffect(() => {
     if (strategies.length > 0 && selectedStrategies.length === 0) {
-      setSelectedStrategies([strategies[0].id]);
-      setBaseStrategy(strategies[0].id);
-      
-      if (strategies.length > 1) {
-        setComparisonStrategies([strategies[1].id]);
-      }
+      setSelectedStrategies([strategies[0]?.id || '']);
     }
   }, [strategies, selectedStrategies]);
 
-  // Generate sample performance data based on time range
-  import { generatePerformanceData } from '../utils/generatePerformanceData';
-  
+  // Utility function to format numbers (ensure this is defined or imported)
+  const formatNumber = (num: number, digits = 2) => {
+    const lookup = [
+      { value: 1, symbol: "" },
+      { value: 1e3, symbol: "k" },
+      { value: 1e6, symbol: "M" },
+      { value: 1e9, symbol: "G" },
+      { value: 1e12, symbol: "T" },
+      { value: 1e15, symbol: "P" },
+      { value: 1e18, symbol: "E" }
+    ];
+    const rx = /\.0+$|(\.[^0]*)0+$/;
+    const item = lookup.slice().reverse().find(function(item) {
+      return num >= item.value;
+    });
+    return item ? (num / item.value).toFixed(digits).replace(rx, "$1") + item.symbol : "0";
+  };
+
   const performanceDataMemo = useMemo(() => generatePerformanceData(selectedTimeRange), [selectedTimeRange]);
 
   useEffect(() => {
@@ -175,207 +496,138 @@ const AnalyticsPage = () => {
     setPerformanceMetrics(performanceDataMemo.metrics);
   }, [performanceDataMemo]);
   
-  // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => { // Mark event as unused if not needed or use it
     setTabValue(newValue);
   };
   
-  // Handle time range change
-  const handleTimeRangeChange = (event: SelectChangeEvent) => {
+  const handleTimeRangeChange = (event: SelectChangeEvent<string>) => { // Corrected type
     setSelectedTimeRange(event.target.value as string);
   };
   
-  // Handle strategy selection change
-  const handleStrategyChange = (event: SelectChangeEvent<string[]>) => {
+  const handleStrategyChange = (event: SelectChangeEvent<string[]>) => { // Corrected type
     setSelectedStrategies(event.target.value as string[]);
   };
   
-  // Handle chart type change
-  const handleChartTypeChange = (event: React.MouseEvent<HTMLElement>, newChartType: string | null) => {
+  const handleChartTypeChange = (_event: React.MouseEvent<HTMLElement>, newChartType: string | null) => { // Mark event as unused if not needed or use it
     if (newChartType !== null) {
       setChartType(newChartType);
     }
   };
   
-  // Handle base strategy change
-  const handleBaseStrategyChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setBaseStrategy(event.target.value as string);
+  const handleRefreshData = () => {
+    dispatch(fetchStrategies());
+    dispatch(fetchBacktestHistory());
+    const newPerformanceData = generatePerformanceData(selectedTimeRange);
+    setPerformanceData(newPerformanceData.data);
+    setBenchmarkData(newPerformanceData.benchmarkData);
+    setPerformanceMetrics(newPerformanceData.metrics);
   };
   
-  // Handle comparison strategies change
-  const handleComparisonStrategiesChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setComparisonStrategies(event.target.value as string[]);
-  };
-  
-  // Helper function to get strategy name by ID
   const getStrategyName = (id: string) => {
     const strategy = strategies.find(s => s.id === id);
     return strategy ? strategy.name : 'Unknown Strategy';
   };
   
-  // Prepare performance chart data
   const performanceChartData = {
     labels: performanceData.map(d => d.date),
     datasets: [
-      // Selected strategy dataset
       {
         label: 'Portfolio',
         data: performanceData.map(d => d.value),
-        borderColor: 'rgba(63, 81, 181, 1)',
-        backgroundColor: 'rgba(63, 81, 181, 0.1)',
+        borderColor: colors.primary,
+        backgroundColor: (context: any) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+          gradient.addColorStop(0, alpha(colors.primary, 0.2));
+          gradient.addColorStop(1, alpha(colors.primary, 0));
+          return gradient;
+        },
         borderWidth: 2,
         fill: true,
         tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 5,
       },
-      // Benchmark dataset (conditional)
       ...(showBenchmark ? [{
         label: 'Benchmark (S&P 500)',
         data: benchmarkData.map(d => d.value),
-        borderColor: 'rgba(180, 180, 180, 1)',
-        backgroundColor: 'rgba(180, 180, 180, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
+        borderColor: colors.chart.ma50,
+        backgroundColor: 'transparent',
       }] : [])
     ]
   };
   
-  // Prepare monthly returns chart data
   const monthlyReturnsData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    labels: performanceData.map(d => d.date),
     datasets: [
       {
-        label: 'Monthly Returns (%)',
-        data: [3.2, 1.5, -2.1, 4.3, -1.1, 2.8, 1.9, 3.5, -0.8, 2.2, 3.1, 1.7],
-        backgroundColor: [
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(244, 67, 54, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(244, 67, 54, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(244, 67, 54, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(63, 81, 181, 0.8)',
-          'rgba(63, 81, 181, 0.8)'
-        ],
+        label: 'Monthly Returns',
+        data: performanceData.map(d => d.monthlyReturn),
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+        borderWidth: 1,
+        borderRadius: 3,
+        barThickness: 20,
       }
     ]
   };
   
-  // Prepare distribution chart data
   const distributionData = {
     labels: ['Wins', 'Losses'],
     datasets: [
       {
-        label: 'Trade Distribution',
         data: [performanceMetrics.winRate, 100 - performanceMetrics.winRate],
-        backgroundColor: [
-          'rgba(76, 175, 80, 0.8)',
-          'rgba(244, 67, 54, 0.8)',
-        ],
-        borderColor: [
-          'rgba(76, 175, 80, 1)',
-          'rgba(244, 67, 54, 1)',
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
-  
-  // Prepare comparison data based on actual strategies
-  const prepareComparisonData = () => {
-    if (!strategies.length) return [];
-    
-    // Create comparison data from actual strategies
-    return strategies.map(strategy => {
-      // Generate realistic performance metrics for each strategy
-      // We're using the strategy's ID to create deterministic but varied metrics
-      // Removed import statement from here as it is moved to the top of the file.
-
-      // Removed duplicate hashCode function definition
-      const seed = hashCode(strategy.id);
-      const multiplier = (seed % 10) / 10 + 0.8; // Value between 0.8 and 1.8
-      
-      return {
-        id: strategy.id,
-        strategy: strategy.name,
-        return: 15 + ((seed * 7) % 15) * multiplier,
-        drawdown: 8 + (seed * 5) % 7 * multiplier,
-        sharpeRatio: 1.2 + (seed * 3) % 8 / 10,
-        winRate: 52 + (seed * 9) % 12,
-      };
-    });
-  };
-  
-  // Get comparison data from actual strategies
-  const comparisonData = prepareComparisonData();
-  
-  // Chart options
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-      },
-    },
-    scales: {
-      x: {
-        display: true,
-        title: {
-          display: true,
-          text: 'Date'
-        },
-        ticks: {
-          maxTicksLimit: 8,
-        }
-      },
-      y: {
-        display: true,
-        title: {
-          display: true,
-          text: 'Portfolio Value ($)'
-        }
+        backgroundColor: [colors.chart.green, colors.chart.red],
+        borderWidth: 0,
       }
-    },
+    ]
   };
   
-  // Bar chart options
-  const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-      }
-    }
-  };
+  const comparisonData = strategies.map(strategy => ({
+    strategy: getStrategyName(strategy.id),
+    return: performanceMetrics.totalReturn,
+    drawdown: performanceMetrics.maxDrawdown,
+    sharpeRatio: performanceMetrics.sharpeRatio,
+    winRate: performanceMetrics.winRate,
+    id: strategy.id
+  }));
   
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Analytics</Typography>
+    <Box sx={{ height: '100%' }}>
+      <HeaderFilterBar 
+        selectedStrategies={selectedStrategies}
+        handleStrategyChange={handleStrategyChange}
+        timeRange={selectedTimeRange}
+        handleTimeRangeChange={handleTimeRangeChange} // Pass the corrected handler
+        onRefresh={handleRefreshData}
+      />
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          mb: 2, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          border: `1px solid ${colors.border}`,
+          borderRadius: theme.shape.borderRadius,
+          bgcolor: colors.background.alt,
+          boxShadow: `0 1px 2px 0 ${alpha(theme.palette.common.black, 0.05)}`,
+        }}
+      >
+        <Typography variant="h6" fontWeight={600}>
+          Analytics Dashboard
+        </Typography>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <FormControl sx={{ minWidth: 120 }} size="small">
+          <FormControl sx={{ minWidth: 150 }} size="small">
             <InputLabel>Time Range</InputLabel>
             <Select
               value={selectedTimeRange}
               onChange={(event: SelectChangeEvent) => handleTimeRangeChange(event)}
               label="Time Range"
-              startAdornment={<CalendarIcon sx={{ color: 'action.active', mr: 1, my: 0.5 }} />}
+              sx={{ bgcolor: colors.background.paper }}
+              startAdornment={<CalendarIcon sx={{ color: 'action.active', mr: 1, my: 0.5, fontSize: '20px' }} />}
             >
               <MenuItem value="1m">1 Month</MenuItem>
               <MenuItem value="3m">3 Months</MenuItem>
@@ -384,197 +636,279 @@ const AnalyticsPage = () => {
               <MenuItem value="all">All Time</MenuItem>
             </Select>
           </FormControl>
+          
+          {strategies.length > 0 && (
+            <FormControl sx={{ minWidth: 180 }} size="small">
+              <InputLabel>Strategy</InputLabel>
+              <Select
+                value={selectedStrategies}
+                onChange={handleStrategyChange}
+                label="Strategy"
+                sx={{ bgcolor: colors.background.paper }}
+                multiple
+              >
+                {strategies.map((strategy) => (
+                  <MenuItem key={strategy.id} value={strategy.id}>
+                    {strategy.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+          
+          <Tooltip title="Refresh data">
+            <IconButton onClick={handleRefreshData} sx={{ bgcolor: colors.background.paper }}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<SettingsIcon />}
+            sx={{
+              ml: 1,
+              borderRadius: theme.shape.borderRadius,
+              textTransform: 'none',
+              fontWeight: 500,
+              px: 2.5,
+              py: 0.75,
+              boxShadow: `0 1px 3px ${alpha(colors.primary, 0.25)}`, 
+              transition: theme.transitions.create(['background-color', 'box-shadow'], {duration: theme.transitions.duration.short}),
+              '&:hover': {
+                boxShadow: `0 2px 6px ${alpha(colors.primary, 0.35)}`,
+              }
+            }}
+          >
+            Settings
+          </Button>
         </Box>
-      </Box>
+      </Paper>
       
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Total Return" 
+            value={performanceMetrics.totalReturn.toFixed(2) + '%'} 
+            trend={performanceMetrics.totalReturn >= 0 ? 'up' : 'down'}
+            period="vs last month"
+            icon={<ShowChartIcon fontSize="small" color="primary" />}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Portfolio Value" 
+            value={formatNumber(performanceData.length ? performanceData[performanceData.length - 1].value : 0)} 
+            trend="up"
+            period="vs last month"
+            icon={<TrendingUpIcon fontSize="small" sx={{ color: colors.secondary }} />}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Max Drawdown" 
+            value={performanceMetrics.maxDrawdown.toFixed(2) + '%'} 
+            trend="down"
+            period="rolling 90-day"
+            icon={<TrendingDownIcon fontSize="small" sx={{ color: colors.error }} />}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Win Rate" 
+            value={performanceMetrics.winRate.toFixed(1) + '%'} 
+            trend="neutral"
+            period="avg last 30 trades"
+            icon={<PieChartIcon fontSize="small" color="info" />}
+          />
+        </Grid>
+      </Grid>
+      
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          mb: 3, 
+          borderRadius: theme.shape.borderRadius,
+          overflow: 'hidden',
+          border: `1px solid ${colors.border}`,
+        }}
+      >
         <Tabs 
           value={tabValue} 
           onChange={handleTabChange} 
           aria-label="analytics tabs"
-      // The hashCode function generates a deterministic numeric value from a string (strategy ID).
-      // It uses the SHA256 hash of the string, extracts the first 8 hexadecimal digits, 
-      // and converts them to a number. This ensures consistent and unique values for each strategy ID.
-      const hashCode = (str: string) => {
-        const hash = CryptoJS.SHA256(str).toString(CryptoJS.enc.Hex);
-        return parseInt(hash.slice(0, 8), 16); // Use first 8 hex digits as a number
-      };
+          sx={{ 
+            bgcolor: colors.background.alt,
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderTopLeftRadius: 3,
+              borderTopRightRadius: 3,
+            },
+            '& .MuiTab-root': {
+              py: 1.5,
+              px: 3,
+              fontSize: '0.875rem',
+              fontWeight: 500,
+            },
+            borderBottom: `1px solid ${colors.border}`,
+          }}
+        >
+          <Tab label="Performance Overview" />
           <Tab label="Strategy Comparison" />
           <Tab label="Detailed Statistics" />
         </Tabs>
-      </Box>
       
-      {/* Performance Overview Tab */}
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          {/* Performance metrics cards */}
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Total Return
-                </Typography>
-                <Typography variant="h5" component="div" color={performanceMetrics.totalReturn >= 0 ? 'success.main' : 'error.main'}>
-                  {performanceMetrics.totalReturn.toFixed(2)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Max Drawdown
-                </Typography>
-                <Typography variant="h5" component="div" color="error.main">
-                  {performanceMetrics.maxDrawdown.toFixed(2)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Sharpe Ratio
-                </Typography>
-                <Typography variant="h5" component="div">
-                  {performanceMetrics.sharpeRatio.toFixed(2)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Win Rate
-                </Typography>
-                <Typography variant="h5" component="div">
-                  {performanceMetrics.winRate.toFixed(1)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Profit Factor
-                </Typography>
-                <Typography variant="h5" component="div">
-                  {performanceMetrics.profitFactor.toFixed(2)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={6} sm={4} md={2}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                  Avg Win/Loss
-                </Typography>
-                <Typography variant="h5" component="div">
-                  {performanceMetrics.avgWin.toFixed(1)}% / {performanceMetrics.avgLoss.toFixed(1)}%
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Performance chart */}
-          <Grid item xs={12}>
-            <Card>
-              <CardHeader 
-                title="Portfolio Performance" 
-                action={
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={showBenchmark}
-                          onChange={(e) => setShowBenchmark(e.target.checked)}
-                          color="primary"
-                          size="small"
-                        />
-                      }
-                      label="Benchmark"
-                    />
-                    <ToggleButtonGroup
-                      value={chartType}
-                      exclusive
-                      onChange={handleChartTypeChange}
-                      aria-label="chart type"
-                      size="small"
-                    >
-                      <ToggleButton value="line" aria-label="line chart">
-                        <ShowChartIcon fontSize="small" />
-                      </ToggleButton>
-                      <ToggleButton value="bar" aria-label="bar chart">
-                        <BarChartIcon fontSize="small" />
-                      </ToggleButton>
-                    </ToggleButtonGroup>
+        <TabPanel value={tabValue} index={0}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden',
+                  height: '100%',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <ChartToolbar
+                  title="Portfolio Performance"
+                  onRefresh={handleRefreshData}
+                  chartType={chartType}
+                  onChartTypeChange={handleChartTypeChange}
+                  showBenchmark={showBenchmark}
+                  onShowBenchmarkChange={(e) => setShowBenchmark(e.target.checked)}
+                />
+                <CardContent sx={{ p: 0, height: 400 }}>
+                  <Box sx={{ height: '100%', p: 2 }}>
+                    {chartType === 'line' ? (
+                      <Line 
+                        ref={chartRef}
+                        data={performanceChartData} 
+                        options={createChartConfig('line')} 
+                      />
+                    ) : (
+                      <Bar 
+                        ref={chartRef}
+                        data={performanceChartData} 
+                        options={createChartConfig('bar')} 
+                      />
+                    )}
                   </Box>
-                }
-              />
-              <Divider />
-              <CardContent>
-                <Box sx={{ height: 400 }}>
-                  {chartType === 'line' ? (
-                    <Line data={performanceChartData} options={chartOptions} />
-                  ) : (
-                    <Bar data={performanceChartData} options={barChartOptions} />
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={8}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden',
+                  height: '100%',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <ChartToolbar
+                  title="Monthly Returns"
+                  onRefresh={handleRefreshData}
+                  chartType="bar"
+                  onChartTypeChange={() => {}}
+                  showBenchmark={false}
+                  onShowBenchmarkChange={() => {}}
+                />
+                <CardContent sx={{ p: 0, height: 300 }}>
+                  <Box sx={{ height: '100%', p: 2 }}>
+                    <Bar data={monthlyReturnsData} options={createChartConfig('bar')} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={4}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden',
+                  height: '100%',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <ChartToolbar
+                  title="Trade Distribution"
+                  onRefresh={handleRefreshData}
+                  chartType="pie"
+                  onChartTypeChange={() => {}}
+                  showBenchmark={false}
+                  onShowBenchmarkChange={() => {}}
+                />
+                <CardContent sx={{ p: 0, height: 300 }}>
+                  <Box sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    position: 'relative',
+                    p: 2
+                  }}>
+                    <Pie data={distributionData} />
+                    <Box sx={{ 
+                      position: 'absolute', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center'
+                    }}>
+                      <Typography variant="h5" fontWeight={600}>
+                        {performanceMetrics.winRate.toFixed(1)}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Win Rate
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
-          
-          {/* Monthly returns */}
-          <Grid item xs={12} md={8}>
-            <Card>
-              <CardHeader title="Monthly Returns" />
-              <Divider />
-              <CardContent>
-                <Box sx={{ height: 300 }}>
-                  <Bar data={monthlyReturnsData} options={barChartOptions} />
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={1}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden', 
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <Box sx={{ 
+                  p: 2, 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  borderBottom: `1px solid ${colors.border}`
+                }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Strategy Comparison
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Compare performance metrics across different strategies
+                    </Typography>
+                  </Box>
+                  <Tooltip title="More information">
+                    <IconButton size="small">
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          {/* Distribution */}
-          <Grid item xs={12} md={4}>
-            <Card>
-              <CardHeader title="Trade Distribution" />
-              <Divider />
-              <CardContent>
-                <Box sx={{ height: 300, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                  <Pie data={distributionData} />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </TabPanel>
-      
-      {/* Strategy Comparison Tab */}
-      <TabPanel value={tabValue} index={1}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Card>
-              <CardHeader 
-                title="Strategy Comparison" 
-                subheader="Compare performance metrics across different strategies"
-              />
-              <Divider />
-              <CardContent>
                 <TableContainer>
-                  <Table>
+                  <Table sx={{ minWidth: 650 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Strategy</TableCell>
@@ -582,83 +916,168 @@ const AnalyticsPage = () => {
                         <TableCell align="right">Max Drawdown (%)</TableCell>
                         <TableCell align="right">Sharpe Ratio</TableCell>
                         <TableCell align="right">Win Rate (%)</TableCell>
+                        <TableCell align="center">Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {comparisonData.map((row) => (
                         <TableRow
                           key={row.strategy}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                          sx={{
+                            '&:last-child td, &:last-child th': { border: 0 },
+                            transition: theme.transitions.create('background-color', {
+                              duration: theme.transitions.duration.shortest,
+                            }),
+                            '&:hover': {
+                              backgroundColor: alpha(theme.palette.action.hover, theme.palette.mode === 'dark' ? 0.09 : 0.05),
+                            },
+                          }}
                         >
                           <TableCell component="th" scope="row">
-                            {row.strategy}
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <Box 
+                                sx={{ 
+                                  width: 12, 
+                                  height: 12, 
+                                  borderRadius: '50%', 
+                                  mr: 1.5, 
+                                  bgcolor: () => {
+                                    const seed = hashCode(row.id);
+                                    const colorIndex = seed % 5;
+                                    const colors = [
+                                      theme.palette.primary.main,
+                                      theme.palette.secondary.main,
+                                      theme.palette.info.main,
+                                      theme.palette.warning.main,
+                                      theme.palette.error.main,
+                                    ];
+                                    return colors[colorIndex];
+                                  }
+                                }} 
+                              />
+                              <Typography fontWeight={500}>{row.strategy}</Typography>
+                            </Box>
                           </TableCell>
-                          <TableCell align="right" sx={{ color: row.return >= 0 ? 'success.main' : 'error.main' }}>
-                            {row.return.toFixed(1)}%
+                          <TableCell 
+                            align="right" 
+                            sx={{ 
+                              fontWeight: 500,
+                              color: row.return >= 0 ? colors.chart.green : colors.chart.red 
+                            }}
+                          >
+                            {row.return.toFixed(2)}%
                           </TableCell>
-                          <TableCell align="right" sx={{ color: 'error.main' }}>
-                            {row.drawdown.toFixed(1)}%
+                          <TableCell 
+                            align="right"
+                            sx={{ color: colors.chart.red, fontWeight: 500 }}
+                          >
+                            {row.drawdown.toFixed(2)}%
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>
                             {row.sharpeRatio.toFixed(2)}
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>
                             {row.winRate.toFixed(1)}%
+                          </TableCell>
+                          <TableCell align="center">
+                            <IconButton size="small">
+                              <ShowChartIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small">
+                              <SettingsIcon fontSize="small" />
+                            </IconButton>
                           </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </CardContent>
-            </Card>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <ChartToolbar
+                  title="Side-by-Side Performance"
+                  onRefresh={handleRefreshData}
+                  chartType="bar"
+                  onChartTypeChange={() => {}}
+                  showBenchmark={false}
+                  onShowBenchmarkChange={() => {}}
+                />
+                <CardContent sx={{ p: 0, height: 400 }}>
+                  <Box sx={{ height: '100%', p: 2 }}>
+                    <Bar 
+                      data={{
+                        labels: comparisonData.map(d => d.strategy),
+                        datasets: [
+                          {
+                            label: 'Total Return (%)',
+                            data: comparisonData.map(d => d.return),
+                            backgroundColor: colors.primary,
+                            borderRadius: 3,
+                            barThickness: 20,
+                          },
+                          {
+                            label: 'Max Drawdown (%)',
+                            data: comparisonData.map(d => d.drawdown),
+                            backgroundColor: colors.chart.red,
+                            borderRadius: 3,
+                            barThickness: 20,
+                          }
+                        ]
+                      }}
+                      options={createChartConfig('bar')}
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
           </Grid>
-          
-          <Grid item xs={12}>
-            <Card>
-              <CardHeader 
-                title="Side-by-Side Performance" 
-                subheader="Visual comparison of strategy performance"
-              />
-              <Divider />
-              <CardContent>
-                <Box sx={{ height: 400 }}>
-                  <Bar 
-                    data={{
-                      labels: comparisonData.map(d => d.strategy),
-                      datasets: [
-                        {
-                          label: 'Total Return (%)',
-                          data: comparisonData.map(d => d.return),
-                          backgroundColor: 'rgba(63, 81, 181, 0.8)',
-                        },
-                        {
-                          label: 'Max Drawdown (%)',
-                          data: comparisonData.map(d => d.drawdown),
-                          backgroundColor: 'rgba(244, 67, 54, 0.8)',
-                        }
-                      ]
-                    }}
-                    options={barChartOptions}
-                  />
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={2}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  overflow: 'hidden', 
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: theme.shape.borderRadius,
+                }}
+              >
+                <Box sx={{ 
+                  p: 2, 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  borderBottom: `1px solid ${colors.border}`
+                }}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Performance Statistics
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Detailed metrics for your trading strategies
+                    </Typography>
+                  </Box>
+                  <Button 
+                    variant="outlined" 
+                    color="primary" 
+                    startIcon={<DownloadIcon />}
+                    size="small"
+                  >
+                    Export Report
+                  </Button>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </TabPanel>
-      
-      {/* Detailed Statistics Tab */}
-      <TabPanel value={tabValue} index={2}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Card>
-              <CardHeader 
-                title="Performance Statistics" 
-                subheader="Detailed metrics for your trading strategies"
-              />
-              <Divider />
-              <CardContent>
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -670,97 +1089,39 @@ const AnalyticsPage = () => {
                     </TableHead>
                     <TableBody>
                       <TableRow>
-                        <TableCell>Total Return</TableCell>
-                        <TableCell align="right" sx={{ color: performanceMetrics.totalReturn >= 0 ? 'success.main' : 'error.main' }}>
+                        <TableCell sx={{ fontWeight: 500 }}>Total Return</TableCell>
+                        <TableCell 
+                          align="right" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            color: performanceMetrics.totalReturn >= 0 ? colors.chart.green : colors.chart.red 
+                          }}
+                        >
                           {performanceMetrics.totalReturn.toFixed(2)}%
                         </TableCell>
                         <TableCell>The percentage gain or loss of the portfolio over the selected time period.</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell>Annualized Return</TableCell>
-                        <TableCell align="right" sx={{ color: performanceMetrics.totalReturn >= 0 ? 'success.main' : 'error.main' }}>
+                        <TableCell sx={{ fontWeight: 500 }}>Annualized Return</TableCell>
+                        <TableCell 
+                          align="right" 
+                          sx={{ 
+                            fontWeight: 600, 
+                            color: performanceMetrics.totalReturn >= 0 ? colors.chart.green : colors.chart.red 
+                          }}
+                        >
                           {(performanceMetrics.totalReturn * 0.85).toFixed(2)}%
                         </TableCell>
                         <TableCell>The return expressed as an annual percentage.</TableCell>
                       </TableRow>
-                      <TableRow>
-                        <TableCell>Max Drawdown</TableCell>
-                        <TableCell align="right" sx={{ color: 'error.main' }}>
-                          {performanceMetrics.maxDrawdown.toFixed(2)}%
-                        </TableCell>
-                        <TableCell>The maximum peak-to-trough decline during the investment period.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Sharpe Ratio</TableCell>
-                        <TableCell align="right">
-                          {performanceMetrics.sharpeRatio.toFixed(2)}
-                        </TableCell>
-                        <TableCell>A measure of risk-adjusted performance. Higher is better.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Sortino Ratio</TableCell>
-                        <TableCell align="right">
-                          {(performanceMetrics.sharpeRatio * 1.2).toFixed(2)}
-                        </TableCell>
-                        <TableCell>Similar to Sharpe but only penalizes downside volatility.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Win Rate</TableCell>
-                        <TableCell align="right">
-                          {performanceMetrics.winRate.toFixed(1)}%
-                        </TableCell>
-                        <TableCell>Percentage of trades that were profitable.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Average Win</TableCell>
-                        <TableCell align="right" sx={{ color: 'success.main' }}>
-                          {performanceMetrics.avgWin.toFixed(1)}%
-                        </TableCell>
-                        <TableCell>Average percentage gain of winning trades.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Average Loss</TableCell>
-                        <TableCell align="right" sx={{ color: 'error.main' }}>
-                          {performanceMetrics.avgLoss.toFixed(1)}%
-                        </TableCell>
-                        <TableCell>Average percentage loss of losing trades.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Profit Factor</TableCell>
-                        <TableCell align="right">
-                          {performanceMetrics.profitFactor.toFixed(2)}
-                        </TableCell>
-                        <TableCell>Total gross profit divided by total gross loss.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Recovery Factor</TableCell>
-                        <TableCell align="right">
-                          {(Math.abs(performanceMetrics.totalReturn / performanceMetrics.maxDrawdown)).toFixed(2)}
-                        </TableCell>
-                        <TableCell>Absolute value of total return divided by max drawdown.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Beta</TableCell>
-                        <TableCell align="right">
-                          {(0.85 + Math.random() * 0.3).toFixed(2)}
-                        </TableCell>
-                        <TableCell>Measure of volatility compared to the overall market.</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Alpha</TableCell>
-                        <TableCell align="right" sx={{ color: 'success.main' }}>
-                          {(2 + Math.random() * 3).toFixed(2)}%
-                        </TableCell>
-                        <TableCell>Excess return compared to the benchmark after adjusting for risk.</TableCell>
-                      </TableRow>
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </CardContent>
-            </Card>
+              </Card>
+            </Grid>
           </Grid>
-        </Grid>
-      </TabPanel>
+        </TabPanel>
+      </Paper>
     </Box>
   );
 };
