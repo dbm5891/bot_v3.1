@@ -7,10 +7,29 @@ from datetime import datetime, timedelta
 
 
 # ----------------------------------------------
-cwd = os.getcwd()
-sys.path.append(f"{cwd}")
-sys.path.append(f"{cwd}\\backtesting")
-sys.path.append(f"{cwd}\\backtesting\\functional")
+# Find the project root directory by looking for a marker file
+def find_project_root():
+    """Find the project root directory by looking for specific marker files."""
+    current_dir = os.path.abspath(os.getcwd())
+    
+    # Look for marker files that indicate the project root
+    marker_files = ['requirements.txt', 'README.md', '.gitignore']
+    
+    # Start from current directory and go up until we find the project root
+    while current_dir != os.path.dirname(current_dir):  # Stop at filesystem root
+        if any(os.path.exists(os.path.join(current_dir, marker)) for marker in marker_files):
+            # Additional check: make sure data_2020_2025 directory exists
+            if os.path.exists(os.path.join(current_dir, 'data_2020_2025')):
+                return current_dir
+        current_dir = os.path.dirname(current_dir)
+    
+    # If not found, fall back to current working directory
+    return os.getcwd()
+
+project_root = find_project_root()
+sys.path.append(project_root)
+sys.path.append(os.path.join(project_root, "backtesting"))
+sys.path.append(os.path.join(project_root, "backtesting", "functional"))
 
 
 
@@ -28,16 +47,16 @@ sys.path.append(f"{cwd}\\backtesting\\functional")
 # ----------------------------------------------
 # read 5min timeframe data
 
-path = f"{cwd}\\data_2020_2025\\by_dates"
+path = os.path.join(project_root, "data_2020_2025", "by_dates")
 # filename="5symbols_2022-05.csv" # per month
 filename="503symbols_2022-05.csv" # per month
 # filename="503symbols_2022-10.csv" # per month
 
 
-# path = f"{cwd}\\data_2020_2025\\symbols"
+# path = os.path.join(project_root, "data_2020_2025", "symbols")
 # filename="NVR_5min_eth_2020-04-01_to_2025-04-10.csv" # month step
 
-df_5m = pd.read_csv(f"{path}/{filename}", parse_dates=["timestamp"])
+df_5m = pd.read_csv(os.path.join(path, filename), parse_dates=["timestamp"])
 df_5m = df_5m.set_index("timestamp")
 df_5m.sort_index(ascending=True, inplace=True)
 

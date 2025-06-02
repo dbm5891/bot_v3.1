@@ -8,11 +8,18 @@ import time as tm
 import backtrader as bt
 
 
+# Get the project root directory (two levels up from this file)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, "scripts"))
+
+# Also add current working directory for compatibility
 cwd = os.getcwd()
-sys.path.append(f"{cwd}")
-sys.path.append(f"{cwd}\\scripts")
-
-
+if cwd not in sys.path:
+    sys.path.append(cwd)
+if os.path.join(cwd, "scripts") not in sys.path:
+    sys.path.append(os.path.join(cwd, "scripts"))
 
 from backtesting.functional.dataframes import print_df_index_range
 from strategies.st_base import StrategyBase
@@ -154,6 +161,7 @@ def print_summary(
         date: pd.Timestamp, 
         date_end: pd.Timestamp = None,
         print_df: bool = False,
+        output_file: str = None,
     ):
 
     # trades_info to csv
@@ -231,13 +239,20 @@ def print_summary(
 
     # to csv
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    path = f"backtesting/outputs"
-    output_filename = f"{path}/trades_info_{date.date()}"
-    output_filename += f"_to_{date_end.date()}" if date_end else ""
-    output_filename += f"_{len(symbols)}symbols"
-    output_filename += f"_ts{timestamp}.csv"
+    
+    # Use custom output file if provided, otherwise use default path
+    if output_file:
+        output_filename = output_file
+    else:
+        path = f"backtesting/outputs"
+        output_filename = f"{path}/trades_info_{date.date()}"
+        output_filename += f"_to_{date_end.date()}" if date_end else ""
+        output_filename += f"_{len(symbols)}symbols"
+        output_filename += f"_ts{timestamp}.csv"
+    
     # list_tuple_to_csv(header=header, list_tuples=trades_info, output_filename=output_filename, append_timestamp=True)
     df_trades_info.to_csv(output_filename)
+    print(f"Results saved to {output_filename}")
 
 
 

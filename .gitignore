@@ -13,6 +13,7 @@ scripts/outputs/*
 scripts/outputs_sim/*
 scripts/testing/outputs/*
 backtesting/outputs/*
+backtesting/backtrader/backtesting/outputs/*.csv
 data_2020_2025/backup
 data_2020_2025/symbols
 data_2020_2025/by_dates
@@ -43,6 +44,7 @@ coverage/
 # IDE files
 .idea/
 .vscode/
+.cursor/
 *.sublime-project
 *.sublime-workspace
 .DS_Store
@@ -54,6 +56,7 @@ __pycache__/
 .Python
 env/
 venv/
+venv310/
 ENV/
 env.bak/
 venv.bak/
@@ -67,3 +70,4 @@ htmlcov/
 # Excel/CSV temporary files
 ~$*.xlsx
 ~$*.xls
+browser-tools-mcp-setup.html
