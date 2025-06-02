@@ -7,10 +7,9 @@ from datetime import datetime, time, timedelta
 import os
 import sys
 
-cwd = os.getcwd()
-curr_path = f"{cwd}\\backtesting\\backtrader\\strategies"
-sys.path.append(curr_path)
-
+# Add the current directory (strategies) to the path so we can import st_base
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
 from st_base import StrategyBase
 from indicators.in_ema import EMA

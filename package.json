@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@agentdeskai/browser-tools-mcp": "^1.2.1",
+    "jsdom": "^26.1.0"
+  }
+}

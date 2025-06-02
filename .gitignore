@@ -13,6 +13,7 @@ scripts/outputs/*
 scripts/outputs_sim/*
 scripts/testing/outputs/*
 backtesting/outputs/*
+backtesting/backtrader/backtesting/outputs/*.csv
 data_2020_2025/backup
 data_2020_2025/symbols
 data_2020_2025/by_dates
@@ -43,6 +44,7 @@ coverage/
 # IDE files
 .idea/
 .vscode/
+.cursor/
 *.sublime-project
 *.sublime-workspace
 .DS_Store
@@ -54,6 +56,7 @@ __pycache__/
 .Python
 env/
 venv/
+venv310/
 ENV/
 env.bak/
 venv.bak/
@@ -67,3 +70,29 @@ htmlcov/
 # Excel/CSV temporary files
 ~$*.xlsx
 ~$*.xls
+bot_v3.1-Cline.code-workspace
+browser-tools-mcp-setup.html
+BROWSER_TOOLS_MCP_SETUP.md
+cline_mcp_settings.json
+code-quality.md
+.clinerules/memory-bank-strategy.md
+.clinerules/self-improving-cline.md
+.roo/mcp.json
+backtesting/__init__.py
+backtesting/backtrader/__init__.py
+backtesting/backtrader/strategies/__init__.py
+backtesting/functional/__init__.py
+browser-tools-mcp/BrowserTools-1.2.0-extension.zip
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/background.js
+memory-bank/systemPatterns.md
+memory-bank/techContext.md
+memory-bank/projectbrief.md
+memory-bank/progress.md
+memory-bank/productContext.md
+memory-bank/activeContext.md
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/panel.js
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/panel.html
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/manifest.json
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/devtools.js
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/devtools.html
+browser-tools-mcp/BrowserTools-Extension/__MACOSX/._chrome-extension

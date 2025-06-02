@@ -15,6 +15,9 @@ This project is the successor to pc2, offering enhanced functionality, improved 
 
 ## Project Structure
 
+- **frontend/**: React-based web application with comprehensive E2E testing
+  - **src/**: React components, pages, services, and utilities
+  - **tests/**: Playwright E2E tests with MSW mocking infrastructure
 - **backtesting/**: Core backtesting framework built on Backtrader
   - **backtrader/**: Implementation of strategies, tests, and data preparation
   - **csv_input/**: Historical price data for multiple securities
@@ -110,10 +113,68 @@ python backtesting\backtrader\dfs_plot2_positions.py
 - **Statistical Analysis**: Evaluate normal distribution, profit factors, and risk metrics
 - **Multi-timeframe Analysis**: Test across different timeframes (1d, 5m, etc.)
 
+## Frontend Testing
+
+The Bot v3.1 includes a comprehensive end-to-end testing infrastructure for the React frontend application using Playwright with TypeScript support.
+
+### Quick Start
+
+1. **Install frontend dependencies**:
+```bash
+cd frontend
+npm install
+npx playwright install
+```
+
+2. **Start the backend server** (from project root):
+```bash
+python api_server.py
+```
+
+3. **Run E2E tests**:
+```bash
+cd frontend
+npm run test:e2e
+```
+
+### Test Suites Available
+
+- **Dashboard Workflow**: Performance charts, statistics, and navigation
+- **Backtesting Workflow**: Strategy selection, configuration, and results
+- **Data Management**: File upload, validation, and data operations
+- **Strategy Analysis**: Strategy comparison and performance analysis
+
+### Interactive Testing
+
+```bash
+# Run tests with UI (recommended for development)
+npm run test:e2e:ui
+
+# Run tests in headed mode (visible browser)
+npm run test:e2e:headed
+
+# Debug specific test
+npm run test:e2e:debug
+```
+
+### Cross-Browser Testing
+
+The E2E tests run across multiple browsers and mobile devices:
+- **Desktop**: Chromium, Firefox, WebKit (Safari)
+- **Mobile**: Pixel 5 (Chrome), iPhone 12 (Safari)
+
+### Integration with Backend Testing
+
+The E2E tests integrate with the existing backend API testing (`test_frontend_backtest.py`) to ensure full-stack functionality validation.
+
+For detailed information about the testing infrastructure, see the [Frontend Testing Documentation](FRONTEND_TESTING.md).
+
 ## Documentation
 
 Additional documentation is available in the README files within each subdirectory:
 
+- [Frontend Testing Documentation](FRONTEND_TESTING.md)
+- [Testing Integration Guide](TESTING_INTEGRATION.md)
 - [Backtesting Documentation](backtesting/README.md)
 - [Technical Analysis Documentation](ta/README.md)
 
