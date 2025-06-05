@@ -4,6 +4,7 @@ from datetime import datetime, time
 
 
 class StrategyBase(bt.Strategy):
+    DESCRIPTION = "This is a base strategy providing common functionalities for other strategies."
 
     params = dict(
         take_profit_usd=None,

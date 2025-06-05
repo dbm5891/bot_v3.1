@@ -24,10 +24,8 @@ from indicators.in_pivot_point import PivotPoint
 
 class StrategyEachBar_Long_tp_sl_pivot_sma(StrategyBase):
 
-
+    DESCRIPTION = 'This strategy enters long positions when the price is above the daily pivot point and the 200-period SMA shows an upward trend, incorporating both take-profit and stop-loss levels for risk management.'
     
-    
-
     def __init__(self):
         super().__init__()
         

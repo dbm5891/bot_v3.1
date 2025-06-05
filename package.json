@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@agentdeskai/browser-tools-mcp": "^1.2.1",
+    "axios": "^1.9.0",
+    "express": "^5.1.0",
     "jsdom": "^26.1.0"
   }
 }

@@ -24,6 +24,7 @@ from indicators.in_find_peaks import FindPeaks
 
 
 class StrategySMA_GMA_Diff(StrategyBase):
+    DESCRIPTION = 'This strategy uses the divergence between Simple Moving Average (SMA) and Gaussian Moving Average (GMA) to identify trading opportunities, combining trend following with noise reduction for more precise entries.'
     # [alignment] columns_to_check = ['sma(200).diff(10)', 'gaussian(21, 6).diff(1)']
     # reading csv file... (backtesting/outputs/results_28-01-2025_15-40-35.csv)
     # AAPL, [2022-05-09] to [2023-07-13] (429 days, 797 trades, $ 32554.0)

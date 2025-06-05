@@ -1,0 +1,25 @@
+
+    Directory: C:\Users\dbm58\bot_v3.1\frontend
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d----          03/06/2025     7:10                cypress
+d----          13/05/2025    21:24                dist
+d----          03/06/2025     7:56                e2e
+d----          03/06/2025     7:52                node_modules
+d----          03/06/2025    13:50                playwright-report
+d----          19/05/2025    17:57                public
+d----          19/05/2025     7:21                src
+d----          03/06/2025    13:50                test-results
+-a---          03/06/2025     7:02           3051 cypress-quickstart.md
+-a---          03/06/2025     7:00            751 cypress.config.ts
+-a---          06/05/2025    23:32            864 index.html
+-a---          03/06/2025     7:52         390160 package-lock.json
+-a---          03/06/2025     9:53           2752 package.json
+-a---          03/06/2025     9:53           2620 PLAYWRIGHT_SETUP.md
+-a---          03/06/2025     9:53           2375 playwright.config.ts
+-a---          06/05/2025    20:24           3706 README.md
+-a---          03/05/2025    11:12            611 tsconfig.json
+-a---          03/05/2025    11:12            191 tsconfig.node.json
+-a---          25/05/2025    21:16            849 vite.config.ts
+

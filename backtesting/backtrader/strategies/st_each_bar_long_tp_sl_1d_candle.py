@@ -24,7 +24,7 @@ from indicators.in_rolling_daily_candle import RollingDailyCandle
 
 
 class StrategyEachBar_Long_tp_sl_1d_candle(StrategyBase):
-
+    DESCRIPTION = "A strategy that opens a long position once per day at a specific time, using 1-day candle data, and manages the trade with both take-profit and stop-loss orders."
 
     def __init__(self):
         super().__init__()

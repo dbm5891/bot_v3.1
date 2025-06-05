@@ -22,7 +22,7 @@ from indicators.in_find_peaks import FindPeaks
 
 
 class StrategyEachBar_Long_MA(StrategyBase):
-
+    DESCRIPTION = "A strategy that enters long positions on each bar when both SMA and GMA indicate an upward trend, using take-profit targets for exits."
     params = dict(
         # take_profit_usd=0.01, # win rate 99%, exp: -1.396 (backtrader 5), 10/05/22
         take_profit_usd=2.0, # win rate 45%, exp: 19.357 (backtrader same), 10/05/22

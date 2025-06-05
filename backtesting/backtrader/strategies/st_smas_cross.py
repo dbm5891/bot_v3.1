@@ -18,6 +18,8 @@ from indicators.in_to_sign import ToSign
 
 class StrategySMAsCross(StrategyBase):
     
+    DESCRIPTION = 'A classic trend-following strategy that generates buy and sell signals based on the crossover of two Simple Moving Averages (SMAs) with different periods.'
+    
     # not profitable. 
     # period: (5/22 to 7/23)
     # strategies: ['StrategySMAsCross']

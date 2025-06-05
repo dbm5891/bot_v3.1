@@ -25,7 +25,8 @@ from indicators.in_find_peaks import FindPeaks
 
 class Strategy_GMA_Peaks(StrategyBase):
     
-
+    DESCRIPTION = 'This strategy uses Gaussian Moving Averages (GMAs) to identify significant peaks and valleys in price data, generating buy and sell signals based on these reversal points.'
+    
     def __init__(self):
         super().__init__()
         self.order = None  # To keep track of the pending order

@@ -23,6 +23,8 @@ from indicators.in_find_peaks import FindPeaks
 
 class StrategyEachBar_SMA_Market_Open(StrategyBase):
 
+    DESCRIPTION = 'This strategy determines the trading direction (long or short) at market open based on the Simple Moving Average (SMA) direction, and then places a single trade for the day with a take-profit target.'
+    
     params = dict(
         take_profit_usd=2.00, 
         # stop_loss_usd=0.50,

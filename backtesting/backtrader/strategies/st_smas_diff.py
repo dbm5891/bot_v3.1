@@ -21,6 +21,7 @@ from indicators.in_gaussian_ma import GMA
 
 class StrategySMAsDiff(StrategyBase):
     
+    DESCRIPTION = 'This strategy evaluates the difference between multiple Simple Moving Averages (SMAs) to identify strong trends and generate trading signals when all SMAs are aligned in the same direction.'
 
     def __init__(self):
         super().__init__()

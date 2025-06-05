@@ -18,6 +18,7 @@ from indicators.in_rolling_daily_candle import RollingDailyCandle
 
 class StrategyTest(StrategyBase):
 
+    DESCRIPTION = 'This is a test strategy designed for validating indicator implementations and basic trading logic, typically used for development and debugging purposes.'
     
     def __init__(self):
         super().__init__()

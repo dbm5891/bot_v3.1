@@ -12,6 +12,7 @@ from st_base import StrategyBase
 
 class Strategy18to19(StrategyBase):
     
+    DESCRIPTION = 'This strategy executes trades based on specific time intervals, buying at 13:30 (UTC) and closing the position at 19:00 (UTC), ignoring traditional technical indicators.'
 
     def __init__(self):
         super().__init__()

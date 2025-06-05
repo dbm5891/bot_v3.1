@@ -16,6 +16,7 @@ from indicators.in_pivot_point import PivotPoint
 
 class StrategyFindPeaks(StrategyBase):
     
+    DESCRIPTION = 'This strategy identifies significant price peaks and valleys using a Zero-Lag Exponential Moving Average (ZLEMA) to generate buy and sell signals, aiming to capture market reversals.'
 
     def __init__(self):
         super().__init__()

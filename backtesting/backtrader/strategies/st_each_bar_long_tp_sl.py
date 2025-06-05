@@ -23,6 +23,8 @@ from indicators.in_find_peaks import FindPeaks
 
 class StrategyEachBar_Long_tp_sl(StrategyBase):
 
+    DESCRIPTION = 'This strategy initiates long positions at a specific market open time, incorporating both take-profit and stop-loss orders for comprehensive risk management.'
+    
     params = dict(
         take_profit_usd=0.20,
         stop_loss_usd=1,

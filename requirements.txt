@@ -41,3 +41,5 @@ pytz>=2021.1
 # scikit-learn>=1.0.0  # For machine learning features
 # tensorflow>=2.6.0    # For deep learning features
 # statsmodels>=0.13.0  # For advanced statistical analysis
+
+python-dotenv

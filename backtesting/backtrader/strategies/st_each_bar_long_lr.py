@@ -28,8 +28,8 @@ from indicators.in_rolling_daily_candle import RollingDailyCandle
 
 class StrategyEachBar_Long_LR(StrategyBase):
 
+    DESCRIPTION = 'This strategy uses a long linear regression trend to identify optimal entry points for long positions, aiming to profit from sustained upward movements.'
     
-
     def __init__(self):
         super().__init__()
         

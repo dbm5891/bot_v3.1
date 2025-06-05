@@ -22,6 +22,7 @@ from indicators.in_find_peaks import FindPeaks
 
 class StrategySMAClose(StrategyBase):
     
+    DESCRIPTION = 'This strategy combines Simple Moving Average (SMA) direction with peak and valley detection to enter trades, aiming to capture significant price movements and reversals. It closes positions at market close or when an opposing peak/valley is detected.'
 
     def __init__(self):
         super().__init__()

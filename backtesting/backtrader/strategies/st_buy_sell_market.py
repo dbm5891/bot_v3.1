@@ -11,6 +11,7 @@ sys.path.append(curr_path)
 from st_base import StrategyBase
 
 class StrategyBuySellMarket(StrategyBase):
+    DESCRIPTION = "A simple strategy that places immediate market orders to buy or sell an asset."
     params = (
         ('take_profit', 0.01),  # Take profit amount in currency units (e.g., $0.01)
     )

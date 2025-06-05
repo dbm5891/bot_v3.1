@@ -29,8 +29,8 @@ from indicators.in_rolling_daily_candle import RollingDailyCandle
 
 class StrategyEachBar_Short_LR(StrategyBase):
 
+    DESCRIPTION = 'This strategy initiates short positions based on a downward-sloping linear regression trend, aiming to profit from sustained bearish movements.'
     
-
     def __init__(self):
         super().__init__()
         

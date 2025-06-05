@@ -28,6 +28,8 @@ from indicators.in_linear_regression import RollingLinearRegression
 
 class Strategy_Signal_Peaks_Long(StrategyBase):
 
+    DESCRIPTION = 'This strategy aims to enter long positions when a signal indicator shows a significant valley (potential reversal upward) and exits at a peak (potential reversal downward).'
+    
     params = dict(
         take_profit_usd=0.20,
         # stop_loss_usd=2, 

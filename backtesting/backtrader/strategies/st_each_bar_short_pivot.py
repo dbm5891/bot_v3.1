@@ -24,6 +24,8 @@ from indicators.in_pivot_point import PivotPoint
 
 class StrategyEachBar_Short_Pivot(StrategyBase):
 
+    DESCRIPTION = 'This strategy enters short positions when the price is below the daily pivot point, aiming to capitalize on bearish movements. It includes take-profit and stop-loss mechanisms.'
+    
     params = dict(
         take_profit_usd=0.20,
         # stop_loss_usd=2, 

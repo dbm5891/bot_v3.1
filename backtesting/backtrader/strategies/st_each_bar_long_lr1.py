@@ -28,7 +28,7 @@ from indicators.in_diff_signals import DiffSignals
 
 class StrategyEachBar_Long_LR1(StrategyBase):
 
-    
+    DESCRIPTION = 'This strategy is an enhanced version of the long linear regression strategy, incorporating multiple time-based linear regression analyses to pinpoint optimal long entry and exit points.'
 
     def __init__(self):
         super().__init__()

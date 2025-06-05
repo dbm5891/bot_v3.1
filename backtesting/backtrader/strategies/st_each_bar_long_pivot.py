@@ -24,6 +24,8 @@ from indicators.in_pivot_point import PivotPoint
 
 class StrategyEachBar_Long_Pivot(StrategyBase):
 
+    DESCRIPTION = 'This strategy enters long positions when the price is above the daily pivot point, aiming to capitalize on bullish movements. It includes take-profit and stop-loss mechanisms.'
+    
     params = dict(
         # take_profit_usd=0.20, # pnl=34, StrategyEachBar_Long_Pivot_orders_26-02-2025_22-43-53.csv
         take_profit_usd=0.20,

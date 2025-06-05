@@ -24,6 +24,8 @@ from indicators.in_pivot_point import PivotPoint
 
 class StrategyEachBar_Short_tp_sl_pivot_sma(StrategyBase):
 
+    DESCRIPTION = 'This strategy initiates short positions when the price is below the daily pivot point and the 200-period SMA shows a downward trend, incorporating both take-profit and stop-loss levels for risk management.'
+    
     params = dict(
         take_profit_usd=0.20,
         stop_loss_usd=99,

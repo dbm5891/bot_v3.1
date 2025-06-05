@@ -30,12 +30,13 @@ from indicators.in_linear_regression import RollingLinearRegression
 from indicators.in_event_percentage import RollingEventPercentage
 from indicators.in_diff_signals import DiffSignals
 from indicators.in_rolling_daily_candle import RollingDailyCandle
+from indicators.in_alligator import Alligator
 
 
-class StrategyEachBar_Long_LR(StrategyBase):
+class StrategyEachBar_Long_Alligator(StrategyBase):
 
+    DESCRIPTION = 'This strategy uses the Alligator indicator to identify trends and generate long entry signals, aiming to profit from sustained upward movements. It is a copy of StrategyEachBar_Long_LR but adapted for the Alligator indicator.'
     
-
     def __init__(self):
         super().__init__()
         
@@ -44,7 +45,8 @@ class StrategyEachBar_Long_LR(StrategyBase):
         duration=timedelta(hours=6, minutes=30)
         
         # 5m
-        
+        self.alligator = Alligator(self.data_5m)
+
         # close.lr.slope (current direction)
         self.lr = RollingLinearRegression(
             self.data_5m, 
@@ -181,9 +183,8 @@ class StrategyEachBar_Long_LR(StrategyBase):
         if not self.position.size and\
             len(trades)<1 and\
             time(hour=14, minute=15) <= now.time() <= time(hour=19, minute=45) and\
-            self.lr.slope[0] > 0 and\
-            self.lr_slope_percentage_positive.result[0] >= percentage_upper_threshold and\
-            self.candle_1d_marubozu_percentage_positive.result[0] >= percentage_upper_threshold:
+            self.alligator.jaw[0] < self.alligator.teeth[0] < self.alligator.lips[0] and \
+            self.alligator.jaw[0] < self.data_5m.close[0]: # Alligator mouth is open and price is above lips
             
 
             # (self.close_diff_sma200_percentage_positive.result[0] >= percentage_upper_threshold and\
@@ -196,8 +197,7 @@ class StrategyEachBar_Long_LR(StrategyBase):
         # long: exit
         if 1:
             if self.position.size and\
-                self.lr_slope_percentage_positive.result[0] < percentage_upper_threshold or\
-                self.candle_1d_marubozu_percentage_positive.result[0] < percentage_upper_threshold:
+                (self.alligator.jaw[0] > self.alligator.teeth[0] or self.alligator.lips[0] > self.alligator.teeth[0]): # Alligator mouth closing or reversed
                 
                 # self.lr.slope[0] <= 0:
                 # self.close_diff_sma200_percentage_positive.result[0]<=0.90 or\

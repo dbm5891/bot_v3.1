@@ -21,7 +21,7 @@ from indicators.in_find_peaks import FindPeaks
 
 
 class Strategy110(StrategyBase):
-
+    DESCRIPTION = "A strategy that uses Bollinger Bands and RSI to enter trades with bracket orders, aiming for quick profit and defined risk."
     params = dict(
         bb_period=20,        # Bollinger Bands period
         bb_dev=2,            # Standard deviation

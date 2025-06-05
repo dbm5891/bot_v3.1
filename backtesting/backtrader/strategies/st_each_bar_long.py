@@ -23,6 +23,8 @@ from indicators.in_find_peaks import FindPeaks
 
 class StrategyEachBar_Long(StrategyBase):
 
+    DESCRIPTION = 'This strategy opens a long position at a specific time each trading day and aims to close it with a defined take-profit target, managing risk without a stop-loss.'
+    
     params = dict(
         take_profit_usd=0.20,
         stop_loss_usd=None,

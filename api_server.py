@@ -8,6 +8,13 @@ import os
 import csv
 from datetime import datetime
 import uuid
+import glob
+import ast
+import re
+import requests
+# Add dotenv support
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(title="Bot v3.1 Backtesting API", version="1.0.0")
 
@@ -83,6 +90,14 @@ async def root():
 async def run_backtest(config: BacktestConfig):
     """Run a backtest using the Python backtesting script"""
     try:
+        # Validate strategyId
+        allowed_strategies = {"linear_regression", "time_based"}
+        if config.strategyId not in allowed_strategies:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid strategyId '{config.strategyId}'. Must be one of: {', '.join(allowed_strategies)}."
+            )
+        
         # Generate unique ID for this backtest
         backtest_id = str(uuid.uuid4())
         
@@ -259,23 +274,95 @@ async def get_backtest(backtest_id: str):
 
 @app.get("/api/strategies")
 async def get_strategies():
-    """Get available strategies"""
-    return [
-        {
-            "id": "linear_regression",
-            "name": "Linear Regression",
-            "description": "Strategy using linear regression for trend analysis",
-            "type": "built-in",
+    """Get available strategies from st_*.py files"""
+    strategy_dir = os.path.join(os.path.dirname(__file__), 'backtesting', 'backtrader', 'strategies')
+    pattern = os.path.join(strategy_dir, 'st_*.py')
+    strategy_files = glob.glob(pattern)
+    strategies = []
+
+    def format_strategy_name(class_name):
+        # Remove 'Strategy' prefix
+        if class_name.startswith('Strategy'):
+            name = class_name[len('Strategy'):]
+        else:
+            name = class_name
+        # If only digits, return as is
+        if name.isdigit():
+            return name
+        # Split by underscores
+        parts = name.split('_')
+        formatted_parts = []
+        for i, part in enumerate(parts):
+            # If last part and all uppercase or known suffix, wrap in parentheses
+            if i == len(parts) - 1 and (part.isupper() or part in {'LR', 'Pivot', 'Long', 'Short'}):
+                if len(parts) > 1:
+                    formatted_parts[-1] = formatted_parts[-1] + f' ({part})'
+                else:
+                    formatted_parts.append(f'({part})')
+            else:
+                # Split CamelCase into words
+                words = re.findall(r'[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+', part)
+                formatted = ' '.join(words)
+                # If this is a multi-word segment, join with hyphen
+                if len(words) > 1 and i != len(parts) - 1:
+                    formatted = '-'.join(words)
+                formatted_parts.append(formatted)
+        # Join all parts with spaces
+        return ' '.join([p for p in formatted_parts if p])
+
+    for file_path in strategy_files:
+        file_name = os.path.basename(file_path)
+        # id: remove 'st_' prefix and '.py' suffix
+        if file_name.startswith('st_') and file_name.endswith('.py'):
+            strategy_id = file_name[3:-3]
+        else:
+            continue
+        # Defaults
+        class_name = None
+        description = ""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                source = f.read()
+            module = ast.parse(source)
+            # Try to get module-level docstring
+            module_doc = ast.get_docstring(module)
+            if module_doc:
+                description = module_doc
+            # Find the first class definition
+            for node in module.body:
+                if isinstance(node, ast.ClassDef):
+                    class_name = node.name
+                    class_doc = ast.get_docstring(node)
+                    if class_doc:
+                        description = class_doc
+
+                    # Check for a DESCRIPTION attribute on the class
+                    for item in node.body:
+                        if isinstance(item, ast.Assign):
+                            for target in item.targets:
+                                if isinstance(target, ast.Name) and target.id == 'DESCRIPTION':
+                                    if isinstance(item.value, ast.Constant):
+                                        description = item.value.value
+                                    break
+                            if description: # If description found, no need to check further assignments
+                                break
+                    break
+        except Exception as e:
+            print(f"Error parsing {file_name}: {e}")
+        # Fallbacks
+        if class_name:
+            name = format_strategy_name(class_name)
+        else:
+            # If no class, fallback to id
+            name = strategy_id.replace('_', ' ').title()
+        strategies.append({
+            "id": strategy_id,
+            "name": name,
+            "description": description,
+            "type": "custom",
             "parameters": []
-        },
-        {
-            "id": "time_based",
-            "name": "Time Based",
-            "description": "Time-based trading strategy",
-            "type": "built-in", 
-            "parameters": []
-        }
-    ]
+        })
+    return strategies
 
 @app.get("/api/symbols")
 async def get_symbols():
@@ -381,6 +468,88 @@ async def get_portfolio_performance(timeRange: str = "ALL"):
             "sharpeRatio": round(sharpe_ratio, 2)
         }
     }
+
+@app.get("/api/market/indices")
+async def get_market_indices():
+    """Fetch S&P 500, NASDAQ, and Dow Jones index data from Yahoo Finance"""
+    import yfinance as yf
+    from datetime import datetime
+    
+    INDEX_SYMBOLS = [
+        {"symbol": "^GSPC", "name": "S&P 500"},
+        {"symbol": "^IXIC", "name": "NASDAQ"},
+        {"symbol": "^DJI", "name": "Dow Jones"},
+    ]
+    results = []
+    
+    for idx in INDEX_SYMBOLS:
+        try:
+            print(f"Debug: Fetching data for {idx['symbol']} from Yahoo Finance")
+            ticker = yf.Ticker(idx["symbol"])
+            info = ticker.info
+            print(f"Debug: Yahoo Finance info for {idx['symbol']}: {info}")
+            
+            price = info.get("regularMarketPrice", 0)
+            previous_close = info.get("regularMarketPreviousClose", 0)
+            open_price = info.get("regularMarketOpen", 0)
+            day_low = info.get("regularMarketDayLow", 0)
+            day_high = info.get("regularMarketDayHigh", 0)
+            volume = info.get("regularMarketVolume", 0)
+            
+            change = info.get("regularMarketChange", 0)
+            changes_percentage = info.get("regularMarketChangePercent", 0)
+            
+            results.append({
+                "symbol": idx["symbol"],
+                "name": idx["name"],
+                "price": price,
+                "changesPercentage": changes_percentage,
+                "change": change,
+                "dayLow": day_low,
+                "dayHigh": day_high,
+                "yearHigh": info.get("yearHigh", 0),
+                "yearLow": info.get("yearLow", 0),
+                "marketCap": info.get("marketCap", None),
+                "priceAvg50": info.get("fiftyDayAverage", 0),
+                "priceAvg200": info.get("twoHundredDayAverage", 0),
+                "volume": volume,
+                "avgVolume": info.get("averageVolume", 0),
+                "exchange": info.get("exchange", ""),
+                "open": open_price,
+                "previousClose": previous_close,
+                "eps": info.get("epsTrailingTwelveMonths", None),
+                "pe": info.get("trailingPE", None),
+                "earningsAnnouncement": info.get("earningsTimestamp", None),
+                "sharesOutstanding": info.get("sharesOutstanding", None),
+                "timestamp": int(datetime.now().timestamp() * 1000),
+            })
+        except Exception as e:
+            print(f"Error fetching {idx['symbol']} from Yahoo Finance: {e}")
+            results.append({
+                "symbol": idx["symbol"],
+                "name": idx["name"],
+                "price": 0,
+                "changesPercentage": 0,
+                "change": 0,
+                "dayLow": 0,
+                "dayHigh": 0,
+                "yearHigh": 0,
+                "yearLow": 0,
+                "marketCap": None,
+                "priceAvg50": 0,
+                "priceAvg200": 0,
+                "volume": 0,
+                "avgVolume": 0,
+                "exchange": "",
+                "open": 0,
+                "previousClose": 0,
+                "eps": None,
+                "pe": None,
+                "earningsAnnouncement": None,
+                "sharesOutstanding": None,
+                "timestamp": int(datetime.now().timestamp() * 1000),
+            })
+    return results
 
 if __name__ == "__main__":
     import uvicorn

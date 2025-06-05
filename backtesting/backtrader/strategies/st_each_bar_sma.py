@@ -23,6 +23,8 @@ from indicators.in_find_peaks import FindPeaks
 
 class StrategyEachBar_SMA(StrategyBase):
 
+    DESCRIPTION = 'This strategy initiates trades based on the direction of a Simple Moving Average (SMA) and aims to close positions when the SMA direction changes, focusing on trend following.'
+    
     params = dict(
         take_profit_usd=2.00, 
         # stop_loss_usd=0.50,
