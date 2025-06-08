@@ -20,7 +20,6 @@ data_2020_2025/by_dates
 data_2020_2025/indexes
 
 # Node.js / Frontend related
-frontend/
 node_modules/
 npm-debug.log
 yarn-debug.log
@@ -33,6 +32,11 @@ package-lock.json
 dist/
 build/
 coverage/
+cypress/
+e2e/
+playwright-report/
+__tests__/
+test-results/
 
 # Environment files
 .env
@@ -95,4 +99,4 @@ browser-tools-mcp/BrowserTools-Extension/chrome-extension/panel.html
 browser-tools-mcp/BrowserTools-Extension/chrome-extension/manifest.json
 browser-tools-mcp/BrowserTools-Extension/chrome-extension/devtools.js
 browser-tools-mcp/BrowserTools-Extension/chrome-extension/devtools.html
-browser-tools-mcp/BrowserTools-Extension/__MACOSX/._chrome-extension
+browser-tools-mcp/BrowserTools-Extension/chrome-extension/__MACOSX/._chrome-extension

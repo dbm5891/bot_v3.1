@@ -1,0 +1,1 @@
+declare module '@21st-dev/magic'; 
