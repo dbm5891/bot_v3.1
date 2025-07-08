@@ -5,6 +5,7 @@ import numpy as np
 from pathlib import Path
 import json
 import argparse
+import quantstats as qs  # Added for QuantStats reporting
 
 def load_results(results_file):
     """Load backtest results from JSON or CSV file"""
@@ -260,7 +261,26 @@ def main():
     strategy_summary, symbol_summary = create_performance_summary(df, output_dir)
     create_visualizations(df, output_dir)
     generate_report(df, output_dir)
-    
+
+    # --- QuantStats Integration ---
+    # If your DataFrame has a column of returns (e.g., 'returns'), you can generate a QuantStats report.
+    # Here, as an example, we generate a report for the first strategy in the DataFrame.
+    if 'returns' in df.columns and 'strategy' in df.columns:
+        for strategy in df['strategy'].unique():
+            strat_returns = df[df['strategy'] == strategy]['returns']
+            if not strat_returns.empty:
+                # QuantStats expects a pandas Series indexed by date
+                if 'date' in df.columns:
+                    strat_returns.index = pd.to_datetime(df[df['strategy'] == strategy]['date'])
+                report_path = output_dir / f"quantstats_report_{strategy}.html"
+                print(f"Generating QuantStats report for strategy: {strategy}")
+                qs.reports.html(strat_returns, output=str(report_path))
+                print(f"QuantStats report saved to: {report_path}")
+                break  # Remove this break to generate for all strategies
+    else:
+        print("No 'returns' column found in DataFrame. QuantStats report not generated.")
+    # --- End QuantStats Integration ---
+
     print("Analysis complete!")
     print(f"View the report at: {output_dir / 'backtest_report.html'}")
 

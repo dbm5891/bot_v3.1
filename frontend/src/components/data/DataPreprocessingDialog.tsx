@@ -1,28 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import AppIcon from '../icons/AppIcon';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Divider,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  LinearProgress,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  TextField,
-  Tooltip,
-  IconButton,
-  useTheme,
-} from '@mui/material';
-import AppIcon from '../icons/AppIcon';
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface TechnicalIndicator {
   name: string;
@@ -60,14 +48,12 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
   dataId,
   dataset,
 }) => {
-  const theme = useTheme();
   const [selectedIndicators, setSelectedIndicators] = useState<string[]>([]);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [indicatorSettings, setIndicatorSettings] = useState<Record<string, Record<string, number>>>({});
   const [openSettings, setOpenSettings] = useState<string | null>(null);
 
-  // Indicator categories and their indicators
   const indicatorCategories = {
     trend: [
       { name: 'SMA', description: 'Simple Moving Average', parameters: [{ name: 'length', defaultValue: 20, min: 2, max: 200 }] },
@@ -114,7 +100,6 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
     ],
   };
 
-  // Flatten indicators for easier lookup
   const allIndicators: TechnicalIndicator[] = Object.keys(indicatorCategories).flatMap(category => 
     indicatorCategories[category as keyof typeof indicatorCategories].map(indicator => ({
       ...indicator,
@@ -126,7 +111,6 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
     if (dataset && dataset.appliedIndicators) {
       setSelectedIndicators(dataset.appliedIndicators);
       
-      // Initialize settings for applied indicators
       const settings: Record<string, Record<string, number>> = {};
       
       dataset.appliedIndicators.forEach(indName => {
@@ -149,20 +133,16 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
   const handleToggleIndicator = (indicator: string) => {
     setSelectedIndicators(prev => {
       if (prev.includes(indicator)) {
-        // Remove indicator
         const filtered = prev.filter(i => i !== indicator);
         
-        // Remove settings
         const newSettings = { ...indicatorSettings };
         delete newSettings[indicator];
         setIndicatorSettings(newSettings);
         
         return filtered;
       } else {
-        // Add indicator
         const newSelection = [...prev, indicator];
         
-        // Initialize settings with default values
         const indicatorObj = allIndicators.find(i => i.name === indicator);
         if (indicatorObj && indicatorObj.parameters) {
           const newSettings = { ...indicatorSettings };
@@ -208,7 +188,6 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
     setError(null);
     
     try {
-      // Add indicator settings to the indicator names
       const indicatorsWithParams = selectedIndicators.map(indName => {
         const settings = indicatorSettings[indName];
         if (settings && Object.keys(settings).length > 0) {
@@ -232,194 +211,93 @@ const DataPreprocessingDialog: React.FC<DataPreprocessingDialogProps> = ({
     const indicatorObj = allIndicators.find(i => i.name === indicator);
     if (!indicatorObj || !indicatorObj.parameters || indicatorObj.parameters.length === 0) {
       return (
-        <Typography variant="body2">
+        <div>
           No configurable parameters
-        </Typography>
+        </div>
       );
     }
     
     return (
-      <Box sx={{ pt: 1 }}>
-        <Typography variant="subtitle2" gutterBottom>Parameters</Typography>
+      <div>
+        <div>Parameters</div>
         {indicatorObj.parameters.map(param => (
-          <Box key={param.name} sx={{ mb: 2 }}>
-            <Typography variant="body2" gutterBottom sx={{ display: 'flex', justifyContent: 'space-between'}}>
+          <div key={param.name} className="mb-2">
+            <div className="flex justify-between">
               <span>{param.name}</span> 
-              <span style={{ color: theme.palette.text.secondary }}>{indicatorSettings[indicator]?.[param.name]}</span>
-            </Typography>
-            <TextField
+              <span>{indicatorSettings[indicator]?.[param.name]}</span>
+            </div>
+            <input
               type="number"
-              inputProps={{
-                min: param.min || 1,
-                max: param.max || 200,
-                step: 1
-              }}
+              id={`${indicator}-${param.name}`}
+              name={`${indicator}-${param.name}`}
+              className="w-full p-2 border rounded-md"
               value={indicatorSettings[indicator]?.[param.name] || param.defaultValue}
               onChange={(e) => handleParameterChange(
                 indicator, 
                 param.name, 
                 Number(e.target.value)
               )}
-              fullWidth
-              size="small"
-              sx={{ borderRadius: theme.shape.borderRadius }}
+              min={param.min}
+              max={param.max}
             />
-          </Box>
+          </div>
         ))}
-      </Box>
+      </div>
     );
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: theme.shape.borderRadius } }}>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6">Data Preprocessing</Typography>
-          {dataset && (
-            <Chip 
-              label={`${dataset.symbol} - ${dataset.timeframe}`} 
-              size="small" 
-              sx={{ ml: 2, borderRadius: theme.shape.borderRadius }}
-            />
-          )}
-        </Box>
-        {dataId && <Typography variant="caption">Dataset ID: {dataId}</Typography>}
-      </DialogTitle>
-      <DialogContent dividers sx={{ p: 2 }}>
-        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}>{error}</Alert>}
-        
-        <Typography variant="subtitle1" gutterBottom sx={{ mb: 1 }}>
-          Available Technical Indicators
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Select indicators to apply to your dataset. Click the settings icon to adjust parameters.
-        </Typography>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Data Preprocessing</DialogTitle>
+          <DialogDescription>
+            Select indicators to apply to your dataset. Click the settings icon to adjust parameters.
+          </DialogDescription>
+        </DialogHeader>
 
-        {dataset && dataset.hasIndicators && (
-          <Alert severity="info" sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}>
-            This dataset already has the following indicators applied: {dataset.appliedIndicators?.join(', ') || 'None'}.
-            Re-processing will overwrite existing indicators.
-          </Alert>
-        )}
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4 max-h-[60vh] overflow-y-auto">
           {Object.entries(indicatorCategories).map(([category, indicators]) => (
-            <Accordion 
-              key={category} 
-              defaultExpanded={category === 'trend'}
-              sx={{ 
-                borderRadius: theme.shape.borderRadius,
-                '&:before': { display: 'none' },
-                '&.Mui-expanded': { 
-                  margin: '8px 0',
-                },
-                 boxShadow: theme.shadows[1],
-                 border: `1px solid ${theme.palette.divider}`,
-              }}
-            >
-              <AccordionSummary 
-                expandIcon={<AppIcon name="ChevronDown" />}
-                sx={{ 
-                  borderRadius: theme.shape.borderRadius,
-                  '&.Mui-expanded': {
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                  },
-                  '& .MuiAccordionSummary-content': {
-                     alignItems: 'center',
-                  }
-                }}
-              >
-                <Typography variant="subtitle1" sx={{ textTransform: 'capitalize', flexGrow: 1 }}>
-                  {category}
-                </Typography>
-                {selectedIndicators.filter(ind => indicators.some(i => i.name === ind)).length > 0 && (
-                  <Chip 
-                    label={`${selectedIndicators.filter(ind => indicators.some(i => i.name === ind)).length} selected`} 
-                    size="small" 
-                    color="primary"
-                    sx={{ ml: 1, borderRadius: theme.shape.borderRadius }} 
-                  />
-                )}
-              </AccordionSummary>
-              <AccordionDetails sx={{ p: 2 }}>
-                <FormGroup>
-                  {indicators.map(indicator => (
-                    <Box key={indicator.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, py: 0.5, '&:hover': { backgroundColor: theme.palette.action.hover, borderRadius: theme.shape.borderRadius } }}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={selectedIndicators.includes(indicator.name)}
-                            onChange={() => handleToggleIndicator(indicator.name)}
-                            size="small"
-                          />
-                        }
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Typography variant="body1">{indicator.name}</Typography>
-                            <Tooltip title={indicator.description} placement="top-start">
-                              <span>
-                                <AppIcon name="Info" size={16} style={{ marginLeft: 4, color: theme.palette.text.secondary, verticalAlign: 'middle' }} />
-                              </span>
-                            </Tooltip>
-                          </Box>
-                        }
-                        sx={{ flexGrow: 1 }}
-                      />
-                      {indicator.parameters && indicator.parameters.length > 0 && (
-                        <Tooltip title="Configure parameters">
-                          <IconButton size="small" onClick={() => handleOpenSettings(indicator.name)} color={openSettings === indicator.name ? "primary" : "default"}>
-                            <AppIcon name="Settings" size={18} />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Box>
-                  ))}
-                </FormGroup>
-              </AccordionDetails>
-            </Accordion>
+            <div key={category} className="space-y-2">
+              <h4 className="font-semibold capitalize">{category}</h4>
+              {indicators.map((indicator) => (
+                <div key={indicator.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id={indicator.name}
+                      checked={selectedIndicators.includes(indicator.name)}
+                      onCheckedChange={() => handleToggleIndicator(indicator.name)}
+                    />
+                    <Label htmlFor={indicator.name} className="cursor-pointer">
+                      {indicator.description}
+                    </Label>
+                  </div>
+                  {indicator.parameters && indicator.parameters.length > 0 && (
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenSettings(indicator.name)}>
+                      <AppIcon name="Settings" className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           ))}
-        </Box>
-
-        {openSettings && (
-          <Dialog 
-            open={!!openSettings} 
-            onClose={handleCloseSettings} 
-            maxWidth="xs" 
-            fullWidth
-            PaperProps={{ sx: { borderRadius: theme.shape.borderRadius, p:1 } }}
-          >
-            <DialogTitle sx={{ pb:1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="h6">{openSettings} Parameters</Typography>
-                <IconButton onClick={handleCloseSettings} size="small">
-                    <AppIcon name="X" />
-                </IconButton>
-              </Box>
-            </DialogTitle>
-            <DialogContent sx={{pt: '8px !important' }}>
-              {renderIndicatorSettings(openSettings)}
-            </DialogContent>
-            <DialogActions sx={{ pt:1, pb:1, pr:1 }}>
-              <Button onClick={handleCloseSettings} variant="outlined" size="small">Done</Button>
-            </DialogActions>
-          </Dialog>
+        </div>
+        
+        {error && (
+          <div className="text-red-500 text-sm">{error}</div>
         )}
 
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={processing}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={processing}>
+            {processing ? 'Processing...' : 'Apply Indicators'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ p: 2 }}>
-        <Button onClick={onClose} color="inherit" variant="text">Cancel</Button>
-        <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            color="primary" 
-            disabled={processing || selectedIndicators.length === 0}
-        >
-          {processing ? 'Processing...' : 'Apply Indicators'}
-        </Button>
-      </DialogActions>
-      {processing && <LinearProgress sx={{ width: '100%'}} />}
     </Dialog>
   );
 };
 
-export default DataPreprocessingDialog;
+export default DataPreprocessingDialog; 

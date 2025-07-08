@@ -1,12 +1,12 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, Divider, Box, Typography, Chip, CircularProgress, alpha, useTheme } from '@mui/material';
-import { Check as CheckIcon, Error as ErrorIcon, HourglassEmpty as LoadingIcon } from '@mui/icons-material';
+import { cn } from "@/lib/utils";
 import AppIcon from '../icons/AppIcon';
+import { Card, CardContent, CardHeader } from '../ui/card';
 
 interface StatusProps {
-  loading: boolean;
-  error: string | null;
-  warning?: string | null;
+  loading?: boolean;
+  error?: string;
+  warning?: string;
 }
 
 interface StatusCardProps {
@@ -14,6 +14,7 @@ interface StatusCardProps {
   dataStatus: StatusProps;
   backtestingStatus: StatusProps;
   portfolioStatus: StatusProps;
+  className?: string;
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({ 
@@ -21,9 +22,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
   dataStatus,
   backtestingStatus,
   portfolioStatus,
+  className,
 }) => {
-  const theme = useTheme();
-
   const getStatusDetails = (status: StatusProps): string => {
     if (status.loading) return 'Fetching latest data...';
     if (status.error) return status.error;
@@ -35,27 +35,27 @@ const StatusCard: React.FC<StatusCardProps> = ({
     if (status.loading) {
       return { 
         label: 'Loading', 
-        color: 'default' as 'default', 
-        icon: <AppIcon name="Loader" size={16} />,
+        color: 'default' as const, 
+        icon: <AppIcon name="Loader" className="animate-spin" size={16} />,
       };
     }
     if (status.error) {
       return { 
         label: 'Error', 
-        color: 'error' as 'error', 
+        color: 'error' as const, 
         icon: <AppIcon name="AlertCircle" size={16} />,
       };
     }
     if (status.warning) {
       return {
         label: 'Warning',
-        color: 'warning' as 'warning',
+        color: 'warning' as const,
         icon: <AppIcon name="AlertTriangle" size={16} />,
       };
     }
     return {
       label: 'OK',
-      color: 'success' as 'success',
+      color: 'success' as const,
       icon: <AppIcon name="Check" size={16} />,
     };
   };
@@ -83,76 +83,42 @@ const StatusCard: React.FC<StatusCardProps> = ({
     }
   ];
 
+  const chipColorClass = (color: string) => {
+    switch (color) {
+      case 'success':
+        return 'bg-success/10 text-success';
+      case 'warning':
+        return 'bg-warning/10 text-warning';
+      case 'error':
+        return 'bg-destructive/10 text-destructive';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
   return (
-    <Card 
-      variant="outlined"
-      sx={{ 
-        height: '100%',
-      }}
-      component="section"
-      aria-labelledby="system-status-title"
-    >
-      <CardHeader 
-        id="system-status-title" 
-        title="System Status" 
-        titleTypographyProps={{ variant: 'h5' }}
-        sx={{
-          pb: 1
-        }}
-      />
-      <Divider />
-      <CardContent sx={{ p: 0 }}>
-        {statusItems.map((item, index) => (
-          <Box 
-            key={item.name}
-            sx={{ 
-              p: 2,
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.action.hover, 0.1)
-              },
-              transition: 'background-color 0.2s ease'
-            }}
-          >
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-              }}
-              component="article"
-              aria-label={`${item.name} status`}
-            >
-              <Box>
-                <Typography 
-                  variant="body1" 
-                  component="h3" 
-                  sx={{ fontWeight: 500, mb: 0.5 }}
-                >
-                  {item.name}
-                </Typography>
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader className="text-lg font-semibold">System Status</CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {statusItems.map((item) => (
+            <div key={item.name} className="flex items-center justify-between py-2 border-b last:border-b-0 border-border">
+              <div>
+                <div className="font-medium text-foreground">{item.name}</div>
                 {item.details && (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    aria-live={item.color === 'error' ? 'assertive' : 'polite'}
-                  >
-                    {item.details}
-                  </Typography>
+                  <div className="text-sm text-muted-foreground mt-1">{item.details}</div>
                 )}
-              </Box>
-              <Chip
-                icon={item.icon}
-                label={item.label}
-                color={item.color}
-                size="small"
-                variant="outlined"
-                sx={{ minWidth: 90 }}
-                aria-label={`Status: ${item.label}`}
-              />
-            </Box>
-            {index < statusItems.length - 1 && <Divider sx={{ mt: 2 }} />}
-          </Box>
-        ))}
+              </div>
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium",
+                chipColorClass(item.color)
+              )}>
+                {item.icon}
+                {item.label}
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

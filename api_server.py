@@ -14,6 +14,20 @@ import re
 import requests
 # Add dotenv support
 from dotenv import load_dotenv
+import logging
+from logging.handlers import RotatingFileHandler
+# Set up structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+)
+logger = logging.getLogger("api_server")
+# Add rotating file handler for persistent logging with rotation
+file_handler = RotatingFileHandler('api_server.log', maxBytes=5*1024*1024, backupCount=5)
+file_handler.setLevel(logging.INFO)  # Only log INFO and above
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 load_dotenv()
 
 app = FastAPI(title="Bot v3.1 Backtesting API", version="1.0.0")
@@ -82,6 +96,30 @@ class BacktestResult(BaseModel):
 # In-memory storage for demonstration
 backtest_results: List[BacktestResult] = []
 
+# In-memory error notification storage
+recent_errors = []  # List of dicts: {timestamp, level, message}
+MAX_ERRORS = 20
+
+def add_error_notification(level, message):
+    recent_errors.append({
+        'timestamp': datetime.now().isoformat(),
+        'level': level,
+        'message': message
+    })
+    if len(recent_errors) > MAX_ERRORS:
+        recent_errors.pop(0)
+
+# Patch logger to also store errors in memory
+class DashboardErrorHandler(logging.Handler):
+    def emit(self, record):
+        if record.levelno >= logging.ERROR:
+            add_error_notification(record.levelname, self.format(record))
+
+error_handler = DashboardErrorHandler()
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
+
 @app.get("/")
 async def root():
     return {"message": "Bot v3.1 Backtesting API is running"}
@@ -90,8 +128,11 @@ async def root():
 async def run_backtest(config: BacktestConfig):
     """Run a backtest using the Python backtesting script"""
     try:
-        # Validate strategyId
-        allowed_strategies = {"linear_regression", "time_based"}
+        # Dynamically discover allowed strategies from st_*.py files
+        strategy_dir = os.path.join(os.path.dirname(__file__), 'backtesting', 'backtrader', 'strategies')
+        pattern = os.path.join(strategy_dir, 'st_*.py')
+        strategy_files = glob.glob(pattern)
+        allowed_strategies = {os.path.basename(f)[3:-3] for f in strategy_files}
         if config.strategyId not in allowed_strategies:
             raise HTTPException(
                 status_code=400,
@@ -143,6 +184,7 @@ async def run_backtest(config: BacktestConfig):
         )
         
         if result.returncode != 0:
+            logger.error(f"Backtesting failed: {result.stderr}")
             raise HTTPException(
                 status_code=500, 
                 detail=f"Backtesting failed: {result.stderr}"
@@ -218,10 +260,10 @@ async def run_backtest(config: BacktestConfig):
                             )
                             trade_details.append(trade_detail)
                         except Exception as e:
-                            print(f"Error parsing trade detail: {e}")
+                            logger.error(f"Error parsing trade detail: {e}")
                             continue
         except Exception as e:
-            print(f"Error reading CSV file: {e}")
+            logger.error(f"Error reading CSV file: {e}")
         
         # Create the backtest result
         backtest_result = BacktestResult(
@@ -254,9 +296,10 @@ async def run_backtest(config: BacktestConfig):
         return backtest_result
         
     except subprocess.TimeoutExpired:
+        logger.error("Backtesting timeout")
         raise HTTPException(status_code=408, detail="Backtesting timeout")
     except Exception as e:
-        print(f"Error running backtest: {e}")
+        logger.error(f"Error running backtest: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/api/backtest/history", response_model=List[BacktestResult])
@@ -348,7 +391,7 @@ async def get_strategies():
                                 break
                     break
         except Exception as e:
-            print(f"Error parsing {file_name}: {e}")
+            logger.error(f"Error parsing {file_name}: {e}")
         # Fallbacks
         if class_name:
             name = format_strategy_name(class_name)
@@ -471,85 +514,53 @@ async def get_portfolio_performance(timeRange: str = "ALL"):
 
 @app.get("/api/market/indices")
 async def get_market_indices():
-    """Fetch S&P 500, NASDAQ, and Dow Jones index data from Yahoo Finance"""
-    import yfinance as yf
-    from datetime import datetime
-    
-    INDEX_SYMBOLS = [
-        {"symbol": "^GSPC", "name": "S&P 500"},
-        {"symbol": "^IXIC", "name": "NASDAQ"},
-        {"symbol": "^DJI", "name": "Dow Jones"},
+    """Fetch S&P 500, NASDAQ, and Dow Jones index data from Finnhub using ETF proxies (SPY, QQQ, DIA)"""
+    import requests
+    FINNHUB_API_KEY = "d0vt25pr01qkepd2bp0gd0vt25pr01qkepd2bp10"
+    ETF_SYMBOLS = [
+        {"symbol": "SPY", "name": "S&P 500 (ETF Proxy)"},
+        {"symbol": "QQQ", "name": "NASDAQ (ETF Proxy)"},
+        {"symbol": "DIA", "name": "Dow Jones (ETF Proxy)"},
     ]
     results = []
-    
-    for idx in INDEX_SYMBOLS:
+    for idx in ETF_SYMBOLS:
         try:
-            print(f"Debug: Fetching data for {idx['symbol']} from Yahoo Finance")
-            ticker = yf.Ticker(idx["symbol"])
-            info = ticker.info
-            print(f"Debug: Yahoo Finance info for {idx['symbol']}: {info}")
-            
-            price = info.get("regularMarketPrice", 0)
-            previous_close = info.get("regularMarketPreviousClose", 0)
-            open_price = info.get("regularMarketOpen", 0)
-            day_low = info.get("regularMarketDayLow", 0)
-            day_high = info.get("regularMarketDayHigh", 0)
-            volume = info.get("regularMarketVolume", 0)
-            
-            change = info.get("regularMarketChange", 0)
-            changes_percentage = info.get("regularMarketChangePercent", 0)
-            
+            url = f"https://finnhub.io/api/v1/quote?symbol={idx['symbol']}&token={FINNHUB_API_KEY}"
+            r = requests.get(url)
+            r.raise_for_status()
+            data = r.json()
             results.append({
                 "symbol": idx["symbol"],
                 "name": idx["name"],
-                "price": price,
-                "changesPercentage": changes_percentage,
-                "change": change,
-                "dayLow": day_low,
-                "dayHigh": day_high,
-                "yearHigh": info.get("yearHigh", 0),
-                "yearLow": info.get("yearLow", 0),
-                "marketCap": info.get("marketCap", None),
-                "priceAvg50": info.get("fiftyDayAverage", 0),
-                "priceAvg200": info.get("twoHundredDayAverage", 0),
-                "volume": volume,
-                "avgVolume": info.get("averageVolume", 0),
-                "exchange": info.get("exchange", ""),
-                "open": open_price,
-                "previousClose": previous_close,
-                "eps": info.get("epsTrailingTwelveMonths", None),
-                "pe": info.get("trailingPE", None),
-                "earningsAnnouncement": info.get("earningsTimestamp", None),
-                "sharesOutstanding": info.get("sharesOutstanding", None),
-                "timestamp": int(datetime.now().timestamp() * 1000),
+                "price": data.get("c", 0),
+                "change": data.get("d", 0),
+                "changesPercentage": data.get("dp", 0),
+                "open": data.get("o", 0),
+                "high": data.get("h", 0),
+                "low": data.get("l", 0),
+                "previousClose": data.get("pc", 0),
+                "timestamp": data.get("t", 0),
             })
         except Exception as e:
-            print(f"Error fetching {idx['symbol']} from Yahoo Finance: {e}")
+            logger.error(f"Error fetching {idx['symbol']} from Finnhub: {e}")
             results.append({
                 "symbol": idx["symbol"],
                 "name": idx["name"],
                 "price": 0,
-                "changesPercentage": 0,
                 "change": 0,
-                "dayLow": 0,
-                "dayHigh": 0,
-                "yearHigh": 0,
-                "yearLow": 0,
-                "marketCap": None,
-                "priceAvg50": 0,
-                "priceAvg200": 0,
-                "volume": 0,
-                "avgVolume": 0,
-                "exchange": "",
+                "changesPercentage": 0,
                 "open": 0,
+                "high": 0,
+                "low": 0,
                 "previousClose": 0,
-                "eps": None,
-                "pe": None,
-                "earningsAnnouncement": None,
-                "sharesOutstanding": None,
-                "timestamp": int(datetime.now().timestamp() * 1000),
+                "timestamp": 0,
             })
     return results
+
+@app.get("/api/notifications")
+async def get_notifications():
+    """Get recent error notifications for the dashboard UI"""
+    return recent_errors
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,50 +1,38 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { ChartType, ChartOptions } from 'chart.js';
+import { colors } from '../theme';
 import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
-  Tabs,
-  Tab,
   Card,
-  CardContent,
-  useTheme,
-  alpha,
-  Tooltip,
-  IconButton,
-  ToggleButtonGroup,
-  ToggleButton,
-  FormControlLabel,
-  Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   CardHeader,
-  Divider,
-} from '@mui/material';
+  CardContent,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardAction,
+} from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { Alert } from '../components/ui/alert';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/tooltip';
+import { Switch } from '../components/ui/switch';
+import { Label } from '../components/ui/label';
+import { Separator } from '../components/ui/separator';
+import LoadingSkeleton from '../components/common/LoadingSkeleton';
 import {
   Settings as SettingsIcon,
-  Refresh as RefreshIcon,
+  RefreshCw as RefreshIcon,
   Download as DownloadIcon,
-  Fullscreen as FullscreenIcon,
-  MoreVert as MoreVertIcon,
-  ShowChart as ShowChartIcon,
+  Maximize2 as FullscreenIcon,
+  MoreHorizontal as MoreVertIcon,
+  LineChart as ShowChartIcon,
   BarChart as BarChartIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
-  Remove as NeutralIcon,
+  Move as NeutralIcon,
   PieChart as PieChartIcon,
-  CalendarToday as CalendarIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+} from 'lucide-react';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -62,13 +50,9 @@ import {
   TimeSeriesScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import CryptoJS from 'crypto-js';
-import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { colors } from '../theme';
 import { createChartConfig } from '../utils/chartConfig';
-import { SelectChangeEvent } from '@mui/material/Select';
-import AppLayout from '../layouts/AppLayoutNew';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../components/ui/select';
 
 ChartJS.register(
   CategoryScale,
@@ -87,13 +71,12 @@ ChartJS.register(
 
 interface TabPanelProps {
   children?: React.ReactNode;
-  index: number;
-  value: number;
+  index: string;
+  value: string;
 }
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
-  const theme = useTheme();
 
   return (
     <div
@@ -101,21 +84,16 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`analytics-tabpanel-${index}`}
       aria-labelledby={`analytics-tab-${index}`}
-      {...other }
+      {...other}
     >
       {value === index && (
-        <Box sx={{ py: 2, borderRadius: theme.shape.borderRadius }}>
+        <div className="py-2 border-t border-border/50">
           {children}
-        </Box>
+        </div>
       )}
     </div>
   );
 }
-
-const hashCode = (str: string) => {
-  const hash = CryptoJS.SHA256(str).toString(CryptoJS.enc.Hex);
-  return parseInt(hash.slice(0, 8), 16);
-};
 
 interface StatCardProps {
   title: string;
@@ -128,72 +106,41 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, trend, icon, period, onSettingsClick, variant }: StatCardProps) => {
-  const theme = useTheme();
-  const trendColor = trend === 'up' ? theme.palette.success.main :
-                   trend === 'down' ? theme.palette.error.main :
-                   theme.palette.text.secondary;
+  const trendColor = trend === 'up' ? 'text-green-500' :
+                   trend === 'down' ? 'text-red-500' :
+                   'text-slate-600';
 
   return (
-    <Card
-      variant={variant}
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        borderRadius: theme.shape.borderRadius,
-        transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: `${theme.shadows[6]}, 0 0 15px ${alpha(theme.palette.primary.main, 0.3)}`,
-          borderColor: theme.palette.primary.main,
-        },
-      }}
-    >
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Typography variant="subtitle1" color="textSecondary" gutterBottom>
-            {title}
-          </Typography>
-          {icon && React.cloneElement(icon, { sx: { fontSize: 28, color: theme.palette.primary.main } })}
-        </Box>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 'bold', my: 1 }}>
+    <Card className={`h-full flex flex-col justify-between border-border/50 bg-white/70 backdrop-blur-sm transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:border-primary/20 ${variant === 'outlined' ? 'border' : ''}`}>
+      <CardContent className="flex flex-grow flex-col justify-between">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm text-slate-600">{title}</p>
+          </div>
+          {icon && React.cloneElement(icon, { className: 'h-7 w-7 text-slate-500' })}
+        </div>
+        <div className="text-2xl font-bold my-1 text-slate-900">
           {value}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', color: trendColor }}>
-          {trend === 'up' && <TrendingUpIcon sx={{ mr: 0.5 }} />}
-          {trend === 'down' && <TrendingDownIcon sx={{ mr: 0.5 }} />}
-          {trend === 'neutral' && <NeutralIcon sx={{ mr: 0.5 }} />}
-          <Typography variant="body2">
+        </div>
+        <div className="flex items-center text-slate-600">
+          {trend === 'up' && <TrendingUpIcon className="mr-1 h-4 w-4 text-green-600" />}
+          {trend === 'down' && <TrendingDownIcon className="mr-1 h-4 w-4 text-red-600" />}
+          {trend === 'neutral' && <NeutralIcon className="mr-1 h-4 w-4 text-slate-500" />}
+          <p className="text-sm">
             {period}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       </CardContent>
       {onSettingsClick && (
-        <Box sx={{ p: 1, textAlign: 'right' }}>
+        <div className="p-2 text-right">
           <Button 
-            size="small" 
-            startIcon={<SettingsIcon />} 
+            size="sm" 
             onClick={onSettingsClick}
-            sx={{
-              textTransform: 'none',
-              color: theme.palette.text.secondary,
-              borderRadius: theme.shape.borderRadius,
-              padding: '4px 8px',
-              fontWeight: 500,
-              backgroundColor: alpha(theme.palette.action.hover, 0.05),
-              boxShadow: theme.shadows[1],
-              transition: 'background-color 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                color: theme.palette.primary.main,
-                boxShadow: `${theme.shadows[3]}, 0 0 8px ${alpha(theme.palette.primary.main, 0.2)}`,
-              }
-            }}
+            className="text-sm text-slate-600 border border-border/50 rounded-md px-4 py-2 font-medium bg-slate-50 hover:bg-gray-100"
           >
             Settings
           </Button>
-        </Box>
+        </div>
       )}
     </Card>
   );
@@ -201,14 +148,13 @@ const StatCard = ({ title, value, trend, icon, period, onSettingsClick, variant 
 
 interface HeaderFilterBarProps {
   selectedStrategies: string[];
-  handleStrategyChange: (event: SelectChangeEvent<string[]>) => void;
+  handleStrategyChange: (id: string) => void;
   timeRange: string;
-  handleTimeRangeChange: (event: SelectChangeEvent<string>) => void;
+  handleTimeRangeChange: (value: string) => void;
   onRefresh: () => void;
 }
 
 const HeaderFilterBar = ({ selectedStrategies, handleStrategyChange, timeRange, handleTimeRangeChange, onRefresh }: HeaderFilterBarProps) => {
-  const theme = useTheme();
   const strategiesList = [
     { id: 'strategy1', name: 'Momentum Strategy' },
     { id: 'strategy2', name: 'Mean Reversion Strategy' },
@@ -216,188 +162,150 @@ const HeaderFilterBar = ({ selectedStrategies, handleStrategyChange, timeRange, 
   ];
 
   return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        mb: 3,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 2,
-        borderRadius: theme.shape.borderRadius,
-      }}
-    >
-      <FormControl fullWidth sx={{ minWidth: 200 }}>
-        <InputLabel id="strategy-select-label">Strategies</InputLabel>
-        <Select
-          labelId="strategy-select-label"
-          multiple
-          value={selectedStrategies}
-          onChange={handleStrategyChange}
-          label="Strategies"
-        >
+    <div className="p-4 mb-3 border border-border/50 bg-white/70 backdrop-blur-sm rounded-md flex flex-col md:flex-row items-center gap-2">
+      <div className="w-full md:w-auto">
+        <Label htmlFor="strategy-select-label">Strategies</Label>
+        <div className="flex flex-wrap gap-2">
           {strategiesList.map((strategy) => (
-            <MenuItem key={strategy.id} value={strategy.id}>
+            <Button
+              key={strategy.id}
+              size="sm"
+              onClick={() => handleStrategyChange(strategy.id)}
+              className={`text-sm text-slate-600 border border-border/50 rounded-md px-4 py-2 font-medium bg-white/70 hover:bg-slate-50 transition-colors duration-200 ${selectedStrategies.includes(strategy.id) ? 'bg-primary text-white border-primary' : ''}`}
+            >
               {strategy.name}
-            </MenuItem>
+            </Button>
           ))}
-        </Select>
-      </FormControl>
+        </div>
+      </div>
 
-      <FormControl sx={{ minWidth: 120 }}>
-        <InputLabel id="time-range-label">Time Range</InputLabel>
-        <Select
-          labelId="time-range-label"
-          value={timeRange}
-          onChange={handleTimeRangeChange}
-          label="Time Range"
-        >
-          <MenuItem value="1M">1 Month</MenuItem>
-          <MenuItem value="3M">3 Months</MenuItem>
-          <MenuItem value="6M">6 Months</MenuItem>
-          <MenuItem value="1Y">1 Year</MenuItem>
-          <MenuItem value="YTD">Year-to-Date</MenuItem>
-          <MenuItem value="ALL">All Time</MenuItem>
+      <div className="w-full md:w-auto">
+        <Label>Time Range</Label>
+        <Select value={timeRange} onValueChange={handleTimeRangeChange}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Select time range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="1M">1 Month</SelectItem>
+            <SelectItem value="3M">3 Months</SelectItem>
+            <SelectItem value="6M">6 Months</SelectItem>
+            <SelectItem value="1Y">1 Year</SelectItem>
+            <SelectItem value="YTD">Year-to-Date</SelectItem>
+            <SelectItem value="ALL">All Time</SelectItem>
+          </SelectContent>
         </Select>
-      </FormControl>
+      </div>
 
-      <Tooltip title="Refresh Data">
-        <IconButton 
-          onClick={onRefresh} 
-          sx={{
-            color: theme.palette.primary.main,
-            backgroundColor: alpha(theme.palette.primary.main, 0.05),
-            transition: 'background-color 0.2s',
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.15),
-            }
-          }}
-        >
-          <RefreshIcon />
-        </IconButton>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            onClick={onRefresh} 
+            className="text-slate-600 bg-slate-50 hover:bg-gray-100"
+          >
+            <RefreshIcon className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Refresh data</TooltipContent>
       </Tooltip>
-    </Paper>
+    </div>
   );
 };
 
-const ChartToolbar = ({ 
+type ChartTypeOptions = 'line' | 'bar' | 'pie';
+
+interface ChartToolbarProps {
+  title: string;
+  onRefresh: () => void;
+  chartType: ChartTypeOptions;
+  onChartTypeChange: (event: React.MouseEvent<HTMLElement>, newValue: ChartTypeOptions | null) => void;
+  showBenchmark: boolean;
+  onShowBenchmarkChange: (checked: boolean) => void;
+  setChartType: React.Dispatch<React.SetStateAction<ChartTypeOptions>>;
+}
+
+const ChartToolbar: React.FC<ChartToolbarProps> = ({ 
   title, 
   onRefresh,
   chartType,
   onChartTypeChange,
   showBenchmark, 
-  onShowBenchmarkChange 
-}: {
-  title: string;
-  onRefresh: () => void;
-  chartType: string;
-  onChartTypeChange: (event: React.MouseEvent<HTMLElement>, newValue: string | null) => void;
-  showBenchmark: boolean;
-  onShowBenchmarkChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onShowBenchmarkChange,
+  setChartType
 }) => {
-  const theme = useTheme();
+  const handleTypeChange = (type: ChartTypeOptions) => {
+    setChartType(type);
+  };
+
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      p: 2,
-      borderBottom: `1px solid ${theme.palette.divider}`
-    }}>
-      <Typography variant="subtitle1" fontWeight={600}>
-        {title}
-      </Typography>
-      
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={showBenchmark}
-              onChange={onShowBenchmarkChange}
-              color="primary"
-              size="small"
-            />
-          }
-          label="Benchmark"
-          sx={{ 
-            '& .MuiFormControlLabel-label': { 
-              fontSize: '0.85rem',
-              color: 'text.secondary'
-            } 
-          }}
-        />
-        <ToggleButtonGroup
-          value={chartType}
-          exclusive
-          onChange={onChartTypeChange}
-          aria-label="chart type"
-          size="small"
-          sx={{
-            '& .MuiToggleButton-root': {
-              px: 1.25, 
-              py: 0.5,
-              borderColor: theme.palette.divider,
-              color: theme.palette.text.secondary,
-              transition: theme.transitions.create(['background-color', 'color', 'border-color'], {duration: theme.transitions.duration.short}),
-              borderRadius: theme.shape.borderRadius / 1.5,
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.action.hover, 0.1),
-                color: theme.palette.text.primary,
-              },
-              '&.Mui-selected': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                color: theme.palette.primary.main,
-                borderColor: alpha(theme.palette.primary.main, 0.5),
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                },
-              },
-            },
-          }}
-        >
-          <ToggleButton value="line" aria-label="line chart">
-            <ShowChartIcon fontSize="small" />
-          </ToggleButton>
-          <ToggleButton value="bar" aria-label="bar chart">
-            <BarChartIcon fontSize="small" />
-          </ToggleButton>
-        </ToggleButtonGroup>
-        <Tooltip title="Refresh data">
-          <IconButton size="small" onClick={onRefresh} sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
-            <RefreshIcon fontSize="small" />
-          </IconButton>
+    <div className="flex justify-between items-center p-4 border-b border-border/50">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
+          <Button
+            variant={chartType === 'line' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => handleTypeChange('line')}
+            aria-label="line chart"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </Button>
+          <Button
+            variant={chartType === 'bar' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => handleTypeChange('bar')}
+            aria-label="bar chart"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 20V10M6 20V4M18 20v-8" />
+            </svg>
+          </Button>
+          {chartType === 'pie' && (
+            <Button
+              variant={chartType === 'pie' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => handleTypeChange('pie')}
+              aria-label="pie chart"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2v10l8.5 8.5a10 10 0 1 1-17-7" />
+              </svg>
+            </Button>
+          )}
+        </div>
+        {showBenchmark !== undefined && (
+          <Switch
+            checked={showBenchmark}
+            onCheckedChange={onShowBenchmarkChange}
+            aria-label="show benchmark"
+          />
+        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onRefresh} aria-label="refresh data">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Refresh data</TooltipContent>
         </Tooltip>
-        <Tooltip title="Download chart">
-          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
-            <DownloadIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Fullscreen">
-          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
-            <FullscreenIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="More options">
-          <IconButton size="small" sx={{ '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.08) } }}>
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 
 const AnalyticsPage = () => {
-  const theme = useTheme();
   const chartRef = useRef<any>(null);
   const dispatch = useDispatch();
   const { strategies } = useSelector((state: RootState) => state.strategy);
 
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState('0');
   const [selectedTimeRange, setSelectedTimeRange] = useState('1Y');
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
-  const [chartType, setChartType] = useState('line');
-  const [showBenchmark, setShowBenchmark] = useState(true);
+  const [chartType, setChartType] = useState<ChartTypeOptions>('line');
+  const [showBenchmark, setShowBenchmark] = useState(false);
 
   const [performanceMetrics, setPerformanceMetrics] = useState<{
     totalReturn: number;
@@ -486,21 +394,19 @@ const AnalyticsPage = () => {
     setPerformanceMetrics(performanceDataMemo.metrics);
   }, [performanceDataMemo]);
   
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const handleTabChange = (value: string) => {
+    setTabValue(value);
   };
   
-  const handleTimeRangeChange = (event: SelectChangeEvent<string>) => {
-    setSelectedTimeRange(event.target.value as string);
+  const handleTimeRangeChange = (value: string) => {
+    setSelectedTimeRange(value);
   };
   
-  const handleStrategyChange = (event: SelectChangeEvent<string[]>) => {
-    setSelectedStrategies(event.target.value as string[]);
-  };
-  
-  const handleChartTypeChange = (_event: React.MouseEvent<HTMLElement>, newChartType: string | null) => {
-    if (newChartType !== null) {
-      setChartType(newChartType);
+  const handleStrategyChange = (id: string) => {
+    if (selectedStrategies.includes(id)) {
+      setSelectedStrategies(selectedStrategies.filter(s => s !== id));
+    } else {
+      setSelectedStrategies([id]);
     }
   };
   
@@ -513,37 +419,23 @@ const AnalyticsPage = () => {
     setPerformanceMetrics(newPerformanceData.metrics);
   };
   
-  const getStrategyName = (id: string) => {
-    const strategy = strategies.find(s => s.id === id);
-    return strategy ? strategy.name : 'Unknown Strategy';
+  const handleChartTypeChange = (event: React.MouseEvent<HTMLElement>, newValue: ChartTypeOptions | null) => {
+    if (newValue) {
+      setChartType(newValue);
+    }
   };
   
   const performanceChartData = {
     labels: performanceData.map(d => d.date),
     datasets: [
       {
-        label: 'Portfolio',
+        label: 'Portfolio Value',
         data: performanceData.map(d => d.value),
-        borderColor: theme.palette.primary.main,
-        backgroundColor: (context: any) => {
-          const ctx = context.chart.ctx;
-          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-          gradient.addColorStop(0, alpha(theme.palette.primary.main, 0.2));
-          gradient.addColorStop(1, alpha(theme.palette.primary.main, 0));
-          return gradient;
-        },
+        backgroundColor: colors.chart.line + '20',
+        borderColor: colors.chart.line,
         borderWidth: 2,
         fill: true,
-        tension: 0.4,
-        pointRadius: 0,
-        pointHoverRadius: 5,
-      },
-      ...(showBenchmark ? [{
-        label: 'Benchmark (S&P 500)',
-        data: benchmarkData.map(d => d.value),
-        borderColor: colors.chart.ma50,
-        backgroundColor: 'transparent',
-      }] : [])
+      }
     ]
   };
   
@@ -553,8 +445,8 @@ const AnalyticsPage = () => {
       {
         label: 'Monthly Returns',
         data: performanceData.map(d => d.monthlyReturn),
-        backgroundColor: theme.palette.primary.main,
-        borderColor: theme.palette.primary.main,
+        backgroundColor: colors.chart.green,
+        borderColor: colors.chart.green,
         borderWidth: 1,
         borderRadius: 3,
         barThickness: 20,
@@ -573,484 +465,454 @@ const AnalyticsPage = () => {
     ]
   };
   
-  const comparisonData = strategies.map(strategy => ({
-    strategy: getStrategyName(strategy.id),
-    return: performanceMetrics.totalReturn,
-    drawdown: performanceMetrics.maxDrawdown,
-    sharpeRatio: performanceMetrics.sharpeRatio,
-    winRate: performanceMetrics.winRate,
-    id: strategy.id
-  }));
-  
+  const lineChartOptions = createChartConfig('line') as ChartOptions<'line'>;
+  const barChartOptions = createChartConfig('bar') as ChartOptions<'bar'>;
+  const pieChartOptions = createChartConfig('pie') as ChartOptions<'pie'>;
+
   return (
-    <AppLayout>
-      <Box sx={{ p: 3, backgroundColor: theme.palette.background.paper, minHeight: '100vh' }}>
-        <HeaderFilterBar 
-          selectedStrategies={selectedStrategies}
-          handleStrategyChange={handleStrategyChange}
-          timeRange={selectedTimeRange}
-          handleTimeRangeChange={handleTimeRangeChange}
-          onRefresh={handleRefreshData}
-        />
+    <TooltipProvider>
+      <div className="min-h-screen relative">
+      <div className="container mx-auto px-4 py-6 max-w-7xl space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Analytics</h1>
+        </div>
+      
+      <HeaderFilterBar 
+        selectedStrategies={selectedStrategies}
+        handleStrategyChange={handleStrategyChange}
+        timeRange={selectedTimeRange}
+        handleTimeRangeChange={handleTimeRangeChange}
+        onRefresh={handleRefreshData}
+      />
 
-        <Paper variant="outlined" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
-            aria-label="analytics tabs"
-            sx={{ 
-              bgcolor: colors.background.alt,
-              '& .MuiTabs-indicator': {
-                height: 3,
-                borderTopLeftRadius: 3,
-                borderTopRightRadius: 3,
-              },
-              '& .MuiTab-root': {
-                py: 1.5,
-                px: 3,
-                fontSize: '0.875rem',
-                fontWeight: 500,
-              },
-              borderBottom: `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <Tab label="Performance Overview" />
-            <Tab label="Strategy Comparison" />
-            <Tab label="Detailed Statistics" />
-          </Tabs>
-        </Paper>
-        
-        <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <StatCard 
-                title="Total Return"
-                value={`${formatNumber(performanceMetrics.totalReturn)}%`}
-                trend={performanceMetrics.totalReturn > 0 ? 'up' : performanceMetrics.totalReturn < 0 ? 'down' : 'neutral'}
-                period={`vs. Prev. ${selectedTimeRange}`}
-                icon={<BarChartIcon />}
-                variant="outlined"
+      <div className="mb-3 border border-border/50 bg-white/70 backdrop-blur-sm rounded-md">
+        <Tabs 
+          value={tabValue} 
+          onValueChange={handleTabChange} 
+          className="bg-transparent"
+        >
+          <TabsList className="bg-transparent">
+            <TabsTrigger value="0">Performance Overview</TabsTrigger>
+            <TabsTrigger value="1">Strategy Comparison</TabsTrigger>
+            <TabsTrigger value="2">Detailed Statistics</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      
+      <TabPanel value={tabValue} index="0">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="col-span-1">
+            <StatCard 
+              title="Total Return"
+              value={`${formatNumber(performanceMetrics.totalReturn)}%`}
+              trend={performanceMetrics.totalReturn > 0 ? 'up' : performanceMetrics.totalReturn < 0 ? 'down' : 'neutral'}
+              period={`vs. Prev. ${selectedTimeRange}`}
+              icon={<BarChartIcon />}
+              variant="outlined"
+            />
+          </div>
+          <div className="col-span-1">
+            <StatCard 
+              title="Sharpe Ratio"
+              value={formatNumber(performanceMetrics.sharpeRatio)}
+              trend={performanceMetrics.sharpeRatio > 1 ? 'up' : performanceMetrics.sharpeRatio < 0.5 ? 'down' : 'neutral'} 
+              period="Annualized"
+              icon={<TrendingUpIcon />}
+              variant="outlined"
+            />
+          </div>
+          <div className="col-span-1">
+            <StatCard 
+              title="Max Drawdown"
+              value={`${formatNumber(performanceMetrics.maxDrawdown)}%`}
+              trend={performanceMetrics.maxDrawdown < -10 ? 'down' : performanceMetrics.maxDrawdown < -5 ? 'neutral' : 'up'} 
+              period="Peak to Trough"
+              icon={<TrendingDownIcon />}
+              variant="outlined"
+            />
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar
+                title="Portfolio Performance Over Time"
+                onRefresh={handleRefreshData}
+                chartType={chartType}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={showBenchmark}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
               />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <StatCard 
-                title="Sharpe Ratio"
-                value={formatNumber(performanceMetrics.sharpeRatio)}
-                trend={performanceMetrics.sharpeRatio > 1 ? 'up' : performanceMetrics.sharpeRatio < 0.5 ? 'down' : 'neutral'} 
-                period="Annualized"
-                icon={<TrendingUpIcon />}
-                variant="outlined"
+              <CardContent className="p-0 h-[400px]">
+                <div className="h-full p-4">
+                  {chartType === 'line' ? (
+                    <Line 
+                      ref={chartRef}
+                      data={performanceChartData} 
+                      options={lineChartOptions} 
+                    />
+                  ) : (
+                    <Bar 
+                      ref={chartRef}
+                      data={performanceChartData} 
+                      options={barChartOptions} 
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="col-span-1 md:col-span-2">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar
+                title="Monthly Returns"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
               />
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <StatCard 
-                title="Max Drawdown"
-                value={`${formatNumber(performanceMetrics.maxDrawdown)}%`}
-                trend={performanceMetrics.maxDrawdown < -10 ? 'down' : performanceMetrics.maxDrawdown < -5 ? 'neutral' : 'up'} 
-                period="Peak to Trough"
-                icon={<TrendingDownIcon />}
-                variant="outlined"
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full p-4">
+                  <Bar data={monthlyReturnsData} options={barChartOptions} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="col-span-1 md:col-span-2">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar
+                title="Trade Distribution"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <ChartToolbar
-                  title="Portfolio Performance Over Time"
-                  onRefresh={handleRefreshData}
-                  chartType={chartType}
-                  onChartTypeChange={handleChartTypeChange}
-                  showBenchmark={showBenchmark}
-                  onShowBenchmarkChange={(e) => setShowBenchmark(e.target.checked)}
-                />
-                <CardContent sx={{ p: 0, height: 400 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    {chartType === 'line' ? (
-                      <Line 
-                        ref={chartRef}
-                        data={performanceChartData} 
-                        options={createChartConfig('line')} 
-                      />
-                    ) : (
-                      <Bar 
-                        ref={chartRef}
-                        data={performanceChartData} 
-                        options={createChartConfig('bar')} 
-                      />
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} md={8}>
-              <Card variant="outlined">
-                <ChartToolbar
-                  title="Monthly Returns"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    <Bar data={monthlyReturnsData} options={createChartConfig('bar')} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} md={4}>
-              <Card variant="outlined">
-                <ChartToolbar
-                  title="Trade Distribution"
-                  onRefresh={handleRefreshData}
-                  chartType="pie"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center',
-                    position: 'relative',
-                    p: 2
-                  }}>
-                    <Pie data={distributionData} />
-                    <Box sx={{ 
-                      position: 'absolute', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center'
-                    }}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {performanceMetrics.winRate.toFixed(1)}%
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Win Rate
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Value at Risk (VaR)"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    <Bar 
-                      data={{
-                        labels: ['10%', '5%', '1%'],
-                        datasets: [
-                          {
-                            label: 'Portfolio',
-                            data: [performanceMetrics.totalReturn, performanceMetrics.maxDrawdown, performanceMetrics.sharpeRatio],
-                            backgroundColor: [theme.palette.primary.main, colors.chart.red, colors.chart.green],
-                            borderWidth: 0,
-                          }
-                        ]
-                      }}
-                      options={createChartConfig('bar')}
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full flex justify-center items-center relative p-4">
+                  <Pie data={distributionData} />
+                  <div className="absolute flex flex-col items-center">
+                    <h6 className="text-2xl font-semibold">
+                      {performanceMetrics.winRate.toFixed(1)}%
+                    </h6>
+                    <p className="text-sm text-slate-600">
+                      Win Rate
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabPanel>
+      
+      <TabPanel value={tabValue} index="1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Value at Risk (VaR)"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full p-4">
+                  <Bar 
+                    data={{
+                      labels: ['10%', '5%', '1%'],
+                      datasets: [
+                        {
+                          label: 'Portfolio',
+                          data: [performanceMetrics.totalReturn, performanceMetrics.maxDrawdown, performanceMetrics.sharpeRatio],
+                          backgroundColor: ['bg-primary', 'bg-red-500', 'bg-green-500'],
+                          borderWidth: 0,
+                        }
+                      ]
+                    }}
+                    options={barChartOptions}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Volatility Analysis"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full p-4">
+                  <Bar 
+                    data={{
+                      labels: ['Annualized Volatility', 'Max Drawdown', 'Sharpe Ratio'],
+                      datasets: [
+                        {
+                          label: 'Portfolio',
+                          data: [performanceMetrics.sharpeRatio, performanceMetrics.maxDrawdown, performanceMetrics.sharpeRatio],
+                          backgroundColor: ['bg-primary', 'bg-red-500', 'bg-green-500'],
+                          borderWidth: 0,
+                        }
+                      ]
+                    }}
+                    options={barChartOptions}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <CardHeader title="Risk Metrics Summary" />
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Total Return"
+                      value={`${formatNumber(performanceMetrics.totalReturn)}%`}
+                      trend={performanceMetrics.totalReturn > 0 ? 'up' : performanceMetrics.totalReturn < 0 ? 'down' : 'neutral'}
+                      period={`vs. Prev. ${selectedTimeRange}`}
+                      icon={<BarChartIcon />}
+                      variant="outlined"
                     />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Volatility Analysis"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    <Bar 
-                      data={{
-                        labels: ['Annualized Volatility', 'Max Drawdown', 'Sharpe Ratio'],
-                        datasets: [
-                          {
-                            label: 'Portfolio',
-                            data: [performanceMetrics.sharpeRatio, performanceMetrics.maxDrawdown, performanceMetrics.sharpeRatio],
-                            backgroundColor: [theme.palette.primary.main, colors.chart.red, colors.chart.green],
-                            borderWidth: 0,
-                          }
-                        ]
-                      }}
-                      options={createChartConfig('bar')}
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Sharpe Ratio"
+                      value={formatNumber(performanceMetrics.sharpeRatio)}
+                      trend={performanceMetrics.sharpeRatio > 1 ? 'up' : performanceMetrics.sharpeRatio < 0.5 ? 'down' : 'neutral'} 
+                      period="Annualized"
+                      icon={<TrendingUpIcon />}
+                      variant="outlined"
                     />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardHeader title="Risk Metrics Summary" titleTypographyProps={{ variant: 'h6' }} />
-                <Divider />
-                <CardContent>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Total Return"
-                        value={`${formatNumber(performanceMetrics.totalReturn)}%`}
-                        trend={performanceMetrics.totalReturn > 0 ? 'up' : performanceMetrics.totalReturn < 0 ? 'down' : 'neutral'}
-                        period={`vs. Prev. ${selectedTimeRange}`}
-                        icon={<BarChartIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Sharpe Ratio"
-                        value={formatNumber(performanceMetrics.sharpeRatio)}
-                        trend={performanceMetrics.sharpeRatio > 1 ? 'up' : performanceMetrics.sharpeRatio < 0.5 ? 'down' : 'neutral'} 
-                        period="Annualized"
-                        icon={<TrendingUpIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Max Drawdown"
-                        value={`${formatNumber(performanceMetrics.maxDrawdown)}%`}
-                        trend={performanceMetrics.maxDrawdown < -10 ? 'down' : performanceMetrics.maxDrawdown < -5 ? 'neutral' : 'up'} 
-                        period="Peak to Trough"
-                        icon={<TrendingDownIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Win Rate"
-                        value={`${formatNumber(performanceMetrics.winRate)}%`}
-                        trend={performanceMetrics.winRate > 50 ? 'up' : performanceMetrics.winRate < 50 ? 'down' : 'neutral'} 
-                        period="Avg. Last 30 Trades"
-                        icon={<PieChartIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Profit Factor"
-                        value={formatNumber(performanceMetrics.profitFactor)}
-                        trend={performanceMetrics.profitFactor > 1 ? 'up' : performanceMetrics.profitFactor < 1 ? 'down' : 'neutral'} 
-                        period="Rolling 90-Day"
-                        icon={<TrendingUpIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Average Win"
-                        value={`${formatNumber(performanceMetrics.avgWin)}`}
-                        trend={performanceMetrics.avgWin > 0 ? 'up' : performanceMetrics.avgWin < 0 ? 'down' : 'neutral'} 
-                        period="Rolling 90-Day"
-                        icon={<TrendingUpIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <StatCard 
-                        title="Average Loss"
-                        value={`${formatNumber(performanceMetrics.avgLoss)}`}
-                        trend={performanceMetrics.avgLoss < 0 ? 'down' : performanceMetrics.avgLoss > 0 ? 'up' : 'neutral'} 
-                        period="Rolling 90-Day"
-                        icon={<TrendingDownIcon />}
-                        variant="outlined"
-                      />
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Trade Distribution (Win/Loss)"
-                  onRefresh={handleRefreshData}
-                  chartType="pie"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center',
-                    position: 'relative',
-                    p: 2
-                  }}>
-                    <Pie data={distributionData} />
-                    <Box sx={{ 
-                      position: 'absolute', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center'
-                    }}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {performanceMetrics.winRate.toFixed(1)}%
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Win Rate
-                      </Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Average Win/Loss Size"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    <Bar 
-                      data={{
-                        labels: ['Average Win', 'Average Loss'],
-                        datasets: [
-                          {
-                            label: 'Portfolio',
-                            data: [performanceMetrics.avgWin, performanceMetrics.avgLoss],
-                            backgroundColor: [colors.chart.green, colors.chart.red],
-                            borderWidth: 0,
-                          }
-                        ]
-                      }}
-                      options={createChartConfig('bar')}
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Max Drawdown"
+                      value={`${formatNumber(performanceMetrics.maxDrawdown)}%`}
+                      trend={performanceMetrics.maxDrawdown < -10 ? 'down' : performanceMetrics.maxDrawdown < -5 ? 'neutral' : 'up'} 
+                      period="Peak to Trough"
+                      icon={<TrendingDownIcon />}
+                      variant="outlined"
                     />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Profit Factor Over Time"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  <Box sx={{ height: '100%', p: 2 }}>
-                    <Bar 
-                      data={{
-                        labels: ['1 Month', '3 Months', '6 Months', '1 Year', 'YTD', 'ALL'],
-                        datasets: [
-                          {
-                            label: 'Portfolio',
-                            data: [performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor],
-                            backgroundColor: theme.palette.primary.main,
-                            borderWidth: 0,
-                          }
-                        ]
-                      }}
-                      options={createChartConfig('bar')}
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Win Rate"
+                      value={`${formatNumber(performanceMetrics.winRate)}%`}
+                      trend={performanceMetrics.winRate > 50 ? 'up' : performanceMetrics.winRate < 50 ? 'down' : 'neutral'} 
+                      period="Avg. Last 30 Trades"
+                      icon={<PieChartIcon />}
+                      variant="outlined"
                     />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardHeader title="Detailed Trade Log" titleTypographyProps={{ variant: 'h6' }} />
-                <Divider />
-                <CardContent>
-                  {/* Add detailed trade log content here */}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Profit Factor"
+                      value={formatNumber(performanceMetrics.profitFactor)}
+                      trend={performanceMetrics.profitFactor > 1 ? 'up' : performanceMetrics.profitFactor < 1 ? 'down' : 'neutral'} 
+                      period="Rolling 90-Day"
+                      icon={<TrendingUpIcon />}
+                      variant="outlined"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Average Win"
+                      value={`${formatNumber(performanceMetrics.avgWin)}`}
+                      trend={performanceMetrics.avgWin > 0 ? 'up' : performanceMetrics.avgWin < 0 ? 'down' : 'neutral'} 
+                      period="Rolling 90-Day"
+                      icon={<TrendingUpIcon />}
+                      variant="outlined"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <StatCard 
+                      title="Average Loss"
+                      value={`${formatNumber(performanceMetrics.avgLoss)}`}
+                      trend={performanceMetrics.avgLoss < 0 ? 'down' : performanceMetrics.avgLoss > 0 ? 'up' : 'neutral'} 
+                      period="Rolling 90-Day"
+                      icon={<TrendingDownIcon />}
+                      variant="outlined"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabPanel>
+      
+      <TabPanel value={tabValue} index="2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Trade Distribution (Win/Loss)"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full flex justify-center items-center relative p-4">
+                  <Pie data={distributionData} />
+                  <div className="absolute flex flex-col items-center">
+                    <h6 className="text-2xl font-semibold">
+                      {performanceMetrics.winRate.toFixed(1)}%
+                    </h6>
+                    <p className="text-sm text-slate-600">
+                      Win Rate
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1 md:col-span-2">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Average Win/Loss Size"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full p-4">
+                  <Bar 
+                    data={{
+                      labels: ['Average Win', 'Average Loss'],
+                      datasets: [
+                        {
+                          label: 'Portfolio',
+                          data: [performanceMetrics.avgWin, performanceMetrics.avgLoss],
+                          backgroundColor: ['bg-green-500', 'bg-red-500'],
+                          borderWidth: 0,
+                        }
+                      ]
+                    }}
+                    options={barChartOptions}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1 md:col-span-2">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Profit Factor Over Time"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                <div className="h-full p-4">
+                  <Bar 
+                    data={{
+                      labels: ['1 Month', '3 Months', '6 Months', '1 Year', 'YTD', 'ALL'],
+                      datasets: [
+                        {
+                          label: 'Portfolio',
+                          data: [performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor, performanceMetrics.profitFactor],
+                          backgroundColor: 'bg-primary',
+                          borderWidth: 0,
+                        }
+                      ]
+                    }}
+                    options={barChartOptions}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <CardHeader title="Detailed Trade Log" />
+              <CardContent>
+                {/* Add detailed trade log content here */}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabPanel>
 
-        <TabPanel value={tabValue} index={3}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Asset Allocation by Class"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  {/* Add asset allocation by class chart content here */}
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card variant="outlined">
-                <ChartToolbar 
-                  title="Sector Exposure"
-                  onRefresh={handleRefreshData}
-                  chartType="bar"
-                  onChartTypeChange={() => {}}
-                  showBenchmark={false}
-                  onShowBenchmarkChange={() => {}}
-                />
-                <CardContent sx={{ p: 0, height: 300 }}>
-                  {/* Add sector exposure chart content here */}
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12}>
-              <Card variant="outlined">
-                <CardHeader title="Top Holdings" titleTypographyProps={{ variant: 'h6' }} />
-                <Divider />
-                <CardContent>
-                  {/* Add top holdings content here */}
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+      <TabPanel value="3" index="3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Asset Allocation by Class"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                {/* Add asset allocation by class chart content here */}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <ChartToolbar 
+                title="Sector Exposure"
+                onRefresh={handleRefreshData}
+                chartType={chartType as ChartTypeOptions}
+                onChartTypeChange={handleChartTypeChange}
+                showBenchmark={false}
+                onShowBenchmarkChange={setShowBenchmark}
+                setChartType={setChartType}
+              />
+              <CardContent className="p-0 h-[300px]">
+                {/* Add sector exposure chart content here */}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="col-span-1">
+            <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+              <CardHeader title="Top Holdings" />
+              <CardContent>
+                {/* Add top holdings content here */}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </TabPanel>
 
-        <TabPanel value={tabValue} index={4}>
-          <Card variant="outlined">
-            <CardHeader title="Custom Analytics & Reporting" titleTypographyProps={{ variant: 'h6' }} />
-            <Divider />
-            <CardContent>
-              {/* Add custom analytics and reporting content here */}
-            </CardContent>
-          </Card>
-        </TabPanel>
-      </Box>
-    </AppLayout>
+      <TabPanel value="4" index="4">
+        <Card className="border border-border/50 bg-white/70 backdrop-blur-sm">
+          <CardHeader title="Custom Analytics & Reporting" />
+          <CardContent>
+            {/* Add custom analytics and reporting content here */}
+          </CardContent>
+        </Card>
+      </TabPanel>
+      </div>
+    </div>
+    </TooltipProvider>
   );
 };
 

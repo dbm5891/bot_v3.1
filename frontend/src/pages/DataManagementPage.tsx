@@ -1,83 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  LinearProgress,
-  Card,
-  CardContent,
-  Divider,
-  Tabs,
-  Tab,
-  useTheme
-} from '@mui/material';
-import {
-  Add as AddIcon,
-  Refresh as RefreshIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  CloudUpload as CloudUploadIcon,
-  Download as DownloadIcon
-} from '@mui/icons-material';
-
 import { AppDispatch, RootState } from '../store';
 import { fetchAvailableData, fetchAvailableSymbols, importMarketData, preprocessData } from '../store/slices/dataSlice';
 import { addNotification } from '../store/slices/uiSlice';
 import DataPreprocessingDialog from '../components/data/DataPreprocessingDialog';
 import DataUploadDialog from '../components/data/DataUploadDialog';
 import AppLayout from '../layouts/AppLayoutNew';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-const TabPanel = (props: TabPanelProps) => {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`data-tabpanel-${index}`}
-      aria-labelledby={`data-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-};
+import DataTable from '../components/data/DataTable';
+import { RefreshCw, Upload, Database, LineChart, History } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const DataManagementPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { availableData, symbols, loading, error } = useSelector((state: RootState) => state.data);
-  const theme = useTheme();
 
   // Local state
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState("datasets");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [preprocessingDialogOpen, setPreprocessingDialogOpen] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
@@ -87,10 +27,6 @@ const DataManagementPage: React.FC = () => {
     dispatch(fetchAvailableData());
     dispatch(fetchAvailableSymbols());
   }, [dispatch]);
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const handleUploadDialogOpen = () => {
     setUploadDialogOpen(true);
@@ -158,302 +94,132 @@ const DataManagementPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5">Data Management</Typography>
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={handleRefreshData}
-              sx={{ mr: 2 }}
-            >
-              Refresh
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleUploadDialogOpen}
-            >
-              Import Data
-            </Button>
-          </Box>
-        </Box>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Data Management</h2>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshData}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleUploadDialogOpen}
+            className="gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import Data
+          </Button>
+        </div>
+      </div>
 
-        {/* Statistics Cards */}
-        <Grid container spacing={2} sx={{ mb: 4 }}>
-          <Grid item xs={6} md={3}>
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" gutterBottom>Total Datasets</Typography>
-                <Typography variant="h3">{totalDatasets}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" gutterBottom>Datasets with Indicators</Typography>
-                <Typography variant="h3">{datasetsWithIndicators}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" gutterBottom>Unique Symbols</Typography>
-                <Typography variant="h3">{uniqueSymbols}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={6} md={3}>
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" gutterBottom>Total Records</Typography>
-                <Typography variant="h3">{totalRecords.toLocaleString()}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* Tabs for different data views */}
-        <Paper sx={{ width: '100%', borderRadius: theme.shape.borderRadius }} variant="outlined">
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="data management tabs">
-              <Tab label="Available Data" />
-              <Tab label="Data Sources" />
-              <Tab label="Preprocessing" />
-            </Tabs>
-          </Box>
-
-          <TabPanel value={tabValue} index={0}>
-            {loading ? (
-              <Box sx={{ width: '100%' }}>
-                <LinearProgress />
-              </Box>
-            ) : (
-              <TableContainer component={(props) => <Paper variant="outlined" {...props} />}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Symbol</TableCell>
-                      <TableCell>Timeframe</TableCell>
-                      <TableCell>Date Range</TableCell>
-                      <TableCell>Records</TableCell>
-                      <TableCell>Source</TableCell>
-                      <TableCell>Indicators</TableCell>
-                      <TableCell>Size</TableCell>
-                      <TableCell>Last Updated</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {availableData.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} align="center">
-                          <Typography variant="body1" sx={{ py: 2 }}>
-                            No data available. Import data to get started.
-                          </Typography>
-                          <Button
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={handleUploadDialogOpen}
-                            sx={{ mt: 1 }}
-                          >
-                            Import Data
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      availableData.map((data) => (
-                        <TableRow key={data.id} hover>
-                          <TableCell>{data.symbol}</TableCell>
-                          <TableCell>{data.timeframe}</TableCell>
-                          <TableCell>
-                            {new Date(data.startDate).toLocaleDateString()} - {new Date(data.endDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>{data.recordCount.toLocaleString()}</TableCell>
-                          <TableCell>{data.source}</TableCell>
-                          <TableCell>
-                            {data.hasIndicators ? (
-                              <Chip 
-                                icon={<CheckCircleIcon />} 
-                                label="Available" 
-                                color="success" 
-                                size="small" 
-                              />
-                            ) : (
-                              <Chip 
-                                icon={<WarningIcon />} 
-                                label="Not Added" 
-                                color="warning" 
-                                size="small" 
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>{data.fileSize}</TableCell>
-                          <TableCell>{new Date(data.lastUpdated).toLocaleDateString()}</TableCell>
-                          <TableCell align="center">
-                            <IconButton 
-                              color="primary" 
-                              onClick={() => handlePreprocessingDialogOpen(data.id)}
-                              title="Add Indicators"
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton 
-                              color="secondary" 
-                              title="Download Data"
-                            >
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={1}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Data Sources</Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Typography variant="body1" paragraph>
-                Connect to external data providers or import your own data files. The system supports multiple data sources:
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>CSV Files</Typography>
-                      <Typography variant="body2" paragraph>
-                        Upload your own CSV files with OHLCV data. The system expects columns for date, open, high, low, close, and volume.
-                      </Typography>
-                      <Button 
-                        variant="outlined" 
-                        size="small" 
-                        startIcon={<CloudUploadIcon />}
-                        onClick={handleUploadDialogOpen}
-                      >
-                        Import CSV
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>TD Ameritrade API</Typography>
-                      <Typography variant="body2" paragraph>
-                        Connect to TD Ameritrade API to fetch real-time and historical data for stocks, options, and futures.
-                      </Typography>
-                      <Button 
-                        variant="outlined" 
-                        size="small" 
-                        disabled
-                      >
-                        Configure API
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                
-                <Grid item xs={12} md={4}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>Polygon.io</Typography>
-                      <Typography variant="body2" paragraph>
-                        Access historical and real-time market data across multiple asset classes with Polygon.io integration.
-                      </Typography>
-                      <Button 
-                        variant="outlined" 
-                        size="small" 
-                        disabled
-                      >
-                        Configure API
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Box>
-          </TabPanel>
-
-          <TabPanel value={tabValue} index={2}>
-            <Box sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Data Preprocessing</Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Typography variant="body1" paragraph>
-                Preprocess your data by adding technical indicators, cleaning missing values, or resampling to different timeframes.
-              </Typography>
-              
-              <Grid container spacing={2}>
-                {availableData.map(data => (
-                  <Grid item xs={12} sm={6} md={4} key={data.id}>
-                    <Card variant={data.hasIndicators ? 'outlined' : 'elevation'}>
-                      <CardContent>
-                        <Typography variant="h6">{data.symbol} ({data.timeframe})</Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {data.recordCount.toLocaleString()} records
-                          </Typography>
-                          {data.hasIndicators ? (
-                            <Chip 
-                              label="Indicators Added" 
-                              color="success" 
-                              size="small" 
-                              icon={<CheckCircleIcon />}
-                            />
-                          ) : (
-                            <Chip 
-                              label="Raw Data" 
-                              color="default" 
-                              size="small" 
-                            />
-                          )}
-                        </Box>
-                        <Button 
-                          variant="text" 
-                          fullWidth 
-                          onClick={() => handlePreprocessingDialogOpen(data.id)}
-                          sx={{ mt: 2 }}
-                        >
-                          {data.hasIndicators ? 'Edit Indicators' : 'Add Indicators'}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          </TabPanel>
-        </Paper>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between space-x-2">
+              <span className="truncate text-sm text-muted-foreground">Total Datasets</span>
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-foreground">{totalDatasets}</div>
+          </CardContent>
+        </Card>
         
-        {/* Import Data Dialog */}
-        <DataUploadDialog
-          open={uploadDialogOpen}
-          onClose={handleUploadDialogClose}
-          onUpload={handleImportData}
-        />
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between space-x-2">
+              <span className="truncate text-sm text-muted-foreground">Datasets with Indicators</span>
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-foreground">{datasetsWithIndicators}</div>
+          </CardContent>
+        </Card>
         
-        {/* Preprocessing Dialog */}
-        <DataPreprocessingDialog
-          open={preprocessingDialogOpen}
-          onClose={handlePreprocessingDialogClose}
-          onPreprocess={(indicators) => {
-            if (selectedDataset) {
-              handlePreprocessData(selectedDataset, indicators);
-            }
-          }}
-          dataId={selectedDataset}
-          dataset={availableData.find(d => d.id === selectedDataset)}
-        />
-      </Box>
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between space-x-2">
+              <span className="truncate text-sm text-muted-foreground">Unique Symbols</span>
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-foreground">{uniqueSymbols}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between space-x-2">
+              <span className="truncate text-sm text-muted-foreground">Total Records</span>
+            </div>
+            <div className="mt-1 text-3xl font-semibold text-foreground">{totalRecords.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs for different data views */}
+      <Tabs defaultValue="datasets" value={tabValue} onValueChange={setTabValue} className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="datasets" className="flex items-center gap-2">
+            <Database className="h-4 w-4" />
+            Datasets
+          </TabsTrigger>
+          <TabsTrigger value="symbols" className="flex items-center gap-2">
+            <LineChart className="h-4 w-4" />
+            Symbols
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Import History
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="datasets" className="mt-0">
+          <Card>
+            <DataTable
+              data={availableData}
+              loading={loading}
+              onEditData={handlePreprocessingDialogOpen}
+            />
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="symbols" className="mt-0">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-muted-foreground">Symbols content goes here.</div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-0">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-muted-foreground">Import history content goes here.</div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Import Data Dialog */}
+      <DataUploadDialog
+        open={uploadDialogOpen}
+        onClose={handleUploadDialogClose}
+        onUpload={handleImportData}
+      />
+      
+      {/* Preprocessing Dialog */}
+      <DataPreprocessingDialog
+        open={preprocessingDialogOpen}
+        onClose={handlePreprocessingDialogClose}
+        onPreprocess={(indicators) => {
+          if (selectedDataset) {
+            handlePreprocessData(selectedDataset, indicators);
+          }
+        }}
+        dataId={selectedDataset}
+        dataset={availableData.find(d => d.id === selectedDataset)}
+      />
     </AppLayout>
   );
 };

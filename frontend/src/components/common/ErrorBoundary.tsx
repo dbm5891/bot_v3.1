@@ -1,43 +1,67 @@
-import React, { Component, ReactNode } from 'react';
-import { Box, Typography, Button, Paper, Container, Alert } from '@mui/material';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { Component, ReactNode } from 'react';
+import { AlertTriangle, RefreshCw, Home, Bug, Copy, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  level?: 'page' | 'component' | 'critical';
+  onError?: (error: Error, errorInfo: any) => void;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
-  errorInfo: React.ErrorInfo | null;
+  errorInfo: any;
+  showDetails: boolean;
+  copied: boolean;
+  retryCount: number;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = {
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null,
+      showDetails: false,
+      copied: false,
+      retryCount: 0
+    };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    this.setState({ errorInfo });
+    
+    // Call custom error handler if provided
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    }
+
+    // Log error to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
+  }
+
+  handleRetry = () => {
+    this.setState(prevState => ({
       hasError: false,
       error: null,
       errorInfo: null,
-    };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return {
-      hasError: true,
-      error,
-      errorInfo: null,
-    };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-    this.setState({
-      error,
-      errorInfo,
-    });
-  }
+      showDetails: false,
+      copied: false,
+      retryCount: prevState.retryCount + 1
+    }));
+  };
 
   handleReload = () => {
     window.location.reload();
@@ -47,91 +71,163 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     window.location.href = '/';
   };
 
-  handleReset = () => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-    });
+  handleToggleDetails = () => {
+    this.setState(prevState => ({ showDetails: !prevState.showDetails }));
+  };
+
+  handleCopyError = async () => {
+    const errorText = `
+Error: ${this.state.error?.name || 'Unknown Error'}
+Message: ${this.state.error?.message || 'No message'}
+Stack: ${this.state.error?.stack || 'No stack trace'}
+Component Stack: ${this.state.errorInfo?.componentStack || 'No component stack'}
+Timestamp: ${new Date().toISOString()}
+URL: ${window.location.href}
+User Agent: ${navigator.userAgent}
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(errorText);
+      this.setState({ copied: true });
+      setTimeout(() => this.setState({ copied: false }), 2000);
+    } catch (err) {
+      console.error('Failed to copy error details:', err);
+    }
   };
 
   render() {
     if (this.state.hasError) {
+      const { level = 'page' } = this.props;
+      const isComponentLevel = level === 'component';
+      
       if (this.props.fallback) {
-        return <>{this.props.fallback}</>;
+        return this.props.fallback;
       }
 
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      const containerClass = isComponentLevel 
+        ? "p-6 border border-destructive/20 rounded-lg bg-destructive/5"
+        : "flex flex-col items-center justify-center min-h-screen bg-background p-6";
 
       return (
-        <Container maxWidth="md" sx={{ mt: 8 }}>
-          <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
-            <Box sx={{ mb: 3 }}>
-              <AlertTriangle size={64} color="#ff9800" />
-            </Box>
+        <div className={containerClass}>
+          <Card className={cn(
+            "max-w-2xl w-full",
+            isComponentLevel ? "border-destructive/20" : "border-border shadow-lg"
+          )}>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <AlertTriangle className="text-destructive" size={isComponentLevel ? 32 : 48} />
+              </div>
+              <CardTitle className={cn(
+                "text-destructive",
+                isComponentLevel ? "text-lg" : "text-2xl"
+              )}>
+                {level === 'critical' ? 'Critical Error' : 'Something went wrong'}
+              </CardTitle>
+            </CardHeader>
             
-            <Typography variant="h4" gutterBottom>
-              Oops! Something went wrong
-            </Typography>
-            
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-              We're sorry for the inconvenience. The application encountered an unexpected error.
-            </Typography>
-
-            {isDevelopment && this.state.error && (
-              <Alert severity="error" sx={{ mb: 3, textAlign: 'left' }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Error: {this.state.error.message}
-                </Typography>
-                {this.state.errorInfo && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {this.state.errorInfo.componentStack}
-                    </Typography>
-                  </Box>
-                )}
+            <CardContent className="space-y-6">
+              <Alert variant="destructive">
+                <Bug className="h-4 w-4" />
+                <AlertDescription>
+                  {this.state.error?.message || 'An unexpected error occurred while rendering this component.'}
+                </AlertDescription>
               </Alert>
-            )}
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<RefreshCw size={20} />}
-                onClick={this.handleReload}
-              >
-                Reload Page
-              </Button>
-              
-              <Button
-                variant="outlined"
-                startIcon={<Home size={20} />}
-                onClick={this.handleGoHome}
-              >
-                Go to Dashboard
-              </Button>
+              {this.state.retryCount > 0 && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    This error has occurred {this.state.retryCount} time(s). Consider reloading the page.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-              {isDevelopment && (
-                <Button
-                  variant="text"
-                  onClick={this.handleReset}
-                  color="secondary"
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Button 
+                  onClick={this.handleRetry}
+                  variant="default"
+                  className="flex items-center gap-2"
                 >
+                  <RefreshCw size={16} />
                   Try Again
                 </Button>
-              )}
-            </Box>
+                
+                <Button 
+                  onClick={this.handleReload}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw size={16} />
+                  Reload Page
+                </Button>
+                
+                {!isComponentLevel && (
+                  <Button 
+                    onClick={this.handleGoHome}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Home size={16} />
+                    Go Home
+                  </Button>
+                )}
+              </div>
 
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 4, display: 'block' }}>
-              If this problem persists, please contact support or try again later.
-            </Typography>
-          </Paper>
-        </Container>
+              <div className="space-y-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={this.handleToggleDetails}
+                  className="w-full"
+                >
+                  {this.state.showDetails ? 'Hide' : 'Show'} Error Details
+                </Button>
+
+                {this.state.showDetails && (
+                  <div className="space-y-3">
+                    <div className="bg-muted p-4 rounded-md text-sm font-mono overflow-auto max-h-40">
+                      <div className="text-destructive font-semibold mb-2">
+                        {this.state.error?.name}: {this.state.error?.message}
+                      </div>
+                      {this.state.error?.stack && (
+                        <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          {this.state.error.stack}
+                        </pre>
+                      )}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={this.handleCopyError}
+                      className="w-full flex items-center gap-2"
+                      disabled={this.state.copied}
+                    >
+                      {this.state.copied ? (
+                        <>
+                          <CheckCircle size={16} />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          Copy Error Details
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">
+                If this problem persists, please contact our support team with the error details above.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       );
     }
-
     return this.props.children;
   }
 }
-
-export default ErrorBoundary;

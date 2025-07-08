@@ -1,61 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Container,
-  Paper,
-  Divider,
-  Button,
-  Tabs,
-  Tab,
-  Alert,
-  IconButton,
-  Tooltip,
-  Chip,
-  Stack,
-  CircularProgress,
-  useTheme,
-  alpha
-} from '@mui/material';
-import { 
-  Compare as CompareIcon,
-  Add as AddIcon,
-  DeleteSweep as DeleteSweepIcon,
-  GetApp as DownloadIcon,
-  History as HistoryIcon
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import BacktestComparison from '../components/backtesting/BacktestComparison';
 import { fetchBacktestHistory, BacktestResult } from '../store/slices/backtestingSlice';
 import AppLayout from '../layouts/AppLayoutNew';
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`backtest-tabpanel-${index}`}
-      aria-labelledby={`backtest-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ py: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 function a11yProps(index: number) {
   return {
@@ -67,7 +16,6 @@ function a11yProps(index: number) {
 const BacktestComparisonPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
   const [selectedBacktests, setSelectedBacktests] = useState<string[]>([]);
   
@@ -77,7 +25,7 @@ const BacktestComparisonPage: React.FC = () => {
     dispatch(fetchBacktestHistory());
   }, [dispatch]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
   };
 
@@ -165,193 +113,176 @@ const BacktestComparisonPage: React.FC = () => {
   
   return (
     <AppLayout>
-      <Container maxWidth="lg">
-        <Paper variant="outlined" sx={{ p: 3, mt: 3, borderRadius: theme.shape.borderRadius }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CompareIcon color="primary" />
-              <Typography variant="h5" component="h1">
+      <div className="container max-w-lg">
+        <div className="p-3 mt-3 border rounded-lg shadow-dashboard hover:shadow-card-hover transition-shadow duration-200">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-primary">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+              </svg>
+              <h1 className="text-2xl font-bold">
                 Backtest Comparison
-              </Typography>
-            </Box>
-            <Box>
-              <Button 
-                variant="outlined" 
-                startIcon={<AddIcon />}
+              </h1>
+            </div>
+            <div>
+              <button 
+                className="mr-1 bg-white text-sm text-slate-900 border border-border focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                 onClick={() => navigate('/backtesting')}
-                size="small"
-                sx={{ mr: 1 }}
               >
                 New Backtest
-              </Button>
-              <Button 
-                variant="outlined" 
-                startIcon={<HistoryIcon />}
+              </button>
+              <button 
+                className="bg-white text-sm text-slate-900 border border-border focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
                 onClick={() => navigate('/backtesting')}
-                size="small"
               >
                 Backtest History
-              </Button>
-            </Box>
-          </Box>
-          <Divider sx={{ mb: 3 }} />
+              </button>
+            </div>
+          </div>
+          <div className="h-px my-3 bg-gray-200"></div>
 
           {/* Loading indicator */}
           {loading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
+            <div className="flex justify-center p-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+            </div>
           )}
 
           {/* Error message */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
+            <div className="mb-3">
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong className="font-bold">Error:</strong>
+                <span className="block sm:inline">{error}</span>
+              </div>
+            </div>
           )}
 
           {/* Main content when loaded */}
           {!loading && !error && (
             <>
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs 
-                  value={tabValue} 
-                  onChange={handleTabChange} 
-                  aria-label="backtest comparison tabs"
-                >
-                  <Tab label="Compare Backtests" {...a11yProps(0)} />
-                  <Tab label="Select Backtests" {...a11yProps(1)} />
-                </Tabs>
-              </Box>
+              <div className="border-b border-border/50">
+                <div className="flex justify-center">
+                  <div className="flex space-x-2">
+                    <button
+                      className="px-4 py-2 bg-white text-sm font-medium text-slate-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                      onClick={() => handleTabChange(0)}
+                    >
+                      Compare Backtests
+                    </button>
+                    <button
+                      className="px-4 py-2 bg-white text-sm font-medium text-slate-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                      onClick={() => handleTabChange(1)}
+                    >
+                      Select Backtests
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* Tab 1: Comparison view */}
-              <TabPanel value={tabValue} index={0}>
-                {selectedBacktests.length === 0 ? (
-                  <Alert severity="info">
-                    Please select backtests to compare from the "Select Backtests" tab.
-                  </Alert>
-                ) : (
-                  <>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                      <Typography variant="subtitle1">
-                        Comparing {selectedBacktests.length} backtests
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Tooltip title="Clear all selected backtests">
-                          <Button 
-                            size="small" 
-                            startIcon={<DeleteSweepIcon />}
+              {tabValue === 0 && (
+                <>
+                  {selectedBacktests.length === 0 ? (
+                    <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative" role="alert">
+                      Please select backtests to compare from the "Select Backtests" tab.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm">
+                          Comparing {selectedBacktests.length} backtests
+                        </span>
+                        <div className="flex space-x-2">
+                          <button 
+                            className="text-sm text-red-500 hover:text-red-700"
                             onClick={handleClearAll}
-                            variant="outlined"
-                            color="error"
                           >
                             Clear All
-                          </Button>
-                        </Tooltip>
-                        <Tooltip title="Export comparison data as CSV">
-                          <Button 
-                            size="small" 
-                            startIcon={<DownloadIcon />}
+                          </button>
+                          <button 
+                            className="text-sm text-blue-500 hover:text-blue-700"
                             onClick={() => handleExportData('csv')}
-                            variant="outlined"
                           >
                             Export CSV
-                          </Button>
-                        </Tooltip>
-                      </Stack>
-                    </Box>
+                          </button>
+                        </div>
+                      </div>
 
-                    <BacktestComparison 
-                      backtests={comparisonData}
-                      onRemoveBacktest={handleRemoveBacktest}
-                      onViewDetails={(id) => navigate(`/backtesting/${id}`)}
-                      onExportData={handleExportData}
-                    />
-                  </>
-                )}
-              </TabPanel>
+                      <BacktestComparison 
+                        backtests={comparisonData}
+                        onRemoveBacktest={handleRemoveBacktest}
+                        onViewDetails={(id) => navigate(`/backtesting/${id}`)}
+                        onExportData={handleExportData}
+                      />
+                    </>
+                  )}
+                </>
+              )}
 
               {/* Tab 2: Selection view */}
-              <TabPanel value={tabValue} index={1}>
-                {availableBacktests.length === 0 ? (
-                  <Alert severity="info">
-                    No backtests found. Run some backtests first to compare them.
-                  </Alert>
-                ) : (
-                  <>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="body1" gutterBottom>
-                        Select up to 5 backtests to compare (selected: {selectedBacktests.length}/5)
-                      </Typography>
-                      {selectedBacktests.length > 0 && (
-                        <Button 
-                          variant="contained" 
-                          color="primary"
-                          onClick={() => setTabValue(0)}
-                          sx={{ mt: 1 }}
-                        >
-                          Compare Selected
-                        </Button>
-                      )}
-                    </Box>
-
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                      {availableBacktests.map((backtest) => {
-                        const isSelected = selectedBacktests.includes(backtest.id);
-                        return (
-                          <Paper 
-                            key={backtest.id}
-                            variant="outlined"
-                            sx={{ 
-                              p: 2, 
-                              width: 300,
-                              cursor: 'pointer',
-                              borderRadius: theme.shape.borderRadius,
-                              border: isSelected 
-                                ? `2px solid ${theme.palette.primary.main}` 
-                                : `1px solid ${theme.palette.divider}`,
-                              bgcolor: isSelected 
-                                ? alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity || 0.12)
-                                : theme.palette.background.paper,
-                              boxShadow: isSelected ? theme.shadows[2] : 'none',
-                            }}
-                            onClick={() => handleSelectBacktest(backtest.id)}
+              {tabValue === 1 && (
+                <>
+                  {availableBacktests.length === 0 ? (
+                    <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative" role="alert">
+                      No backtests found. Run some backtests first to compare them.
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-2">
+                        <span className="text-base font-medium text-slate-900">
+                          Select up to 5 backtests to compare (selected: {selectedBacktests.length}/5)
+                        </span>
+                        {selectedBacktests.length > 0 && (
+                          <button 
+                            className="mt-1 bg-blue-500 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center"
+                            onClick={() => handleTabChange(0)}
                           >
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="subtitle1" noWrap>{backtest.strategyName}</Typography>
-                              {isSelected && (
-                                <Chip size="small" label="Selected" color="primary" />
-                              )}
-                            </Box>
-                            <Typography variant="body2" color="text.secondary">
-                              {backtest.symbol} • {backtest.timeframe}
-                            </Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                              <Typography variant="body2">
-                                Returns: <span style={{ 
-                                  color: (backtest.totalReturn || 0) >= 0 
-                                          ? theme.palette.success.main
-                                          : theme.palette.error.main,
-                                  fontWeight: 'bold'
-                                }}>
-                                  {(backtest.totalReturn || 0).toFixed(2)}%
+                            Compare Selected
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {availableBacktests.map((backtest) => {
+                          const isSelected = selectedBacktests.includes(backtest.id);
+                          return (
+                            <div 
+                              key={backtest.id}
+                              className={`p-2 w-32 ${isSelected ? 'border-2 border-blue-500 shadow-card-hover' : 'border border-border/50 shadow-dashboard'} ${isSelected ? 'bg-blue-50' : ''} hover:shadow-card-hover transition-shadow duration-200 rounded-lg`}
+                              onClick={() => handleSelectBacktest(backtest.id)}
+                            >
+                              <div className="flex justify-between mb-1">
+                                <span className="text-sm font-medium">{backtest.strategyName}</span>
+                                {isSelected && (
+                                  <span className="text-sm text-blue-500">Selected</span>
+                                )}
+                              </div>
+                              <span className="text-sm text-gray-500">
+                                {backtest.symbol} • {backtest.timeframe}
+                              </span>
+                              <div className="flex justify-between mt-2">
+                                <span className="text-sm">
+                                  Returns: <span className={`font-bold ${backtest.totalReturn && backtest.totalReturn >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {(backtest.totalReturn || 0).toFixed(2)}%
+                                  </span>
                                 </span>
-                              </Typography>
-                              <Typography variant="body2">
-                                Date: {new Date(backtest.createdAt || '').toLocaleDateString()}
-                              </Typography>
-                            </Box>
-                          </Paper>
-                        );
-                      })}
-                    </Box>
-                  </>
-                )}
-              </TabPanel>
+                                <span className="text-sm">
+                                  Date: {new Date(backtest.createdAt || '').toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </>
           )}
-        </Paper>
-      </Container>
+        </div>
+      </div>
     </AppLayout>
   );
 };

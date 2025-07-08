@@ -1,177 +1,99 @@
-import React, { useMemo } from 'react';
-import { 
-  Box, 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  Divider, 
-  Grid, 
-  Typography, 
-  Tooltip, 
-  Skeleton,
-  Alert,
-  useTheme,
-  alpha,
-  Paper,
-  Fade
-} from '@mui/material';
-import { 
-  TrendingUp as TrendingUpIcon, 
-  TrendingDown as TrendingDownIcon,
-  ShowChart as ChartIcon,
-  Assessment as AssessmentIcon, 
-  MonetizationOn as MonetizationOnIcon,
-  EmojiEvents as EmojiEventsIcon,
-} from '@mui/icons-material';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import AppIcon from '../icons/AppIcon';
+import { useTheme } from '../ui/theme-provider';
+import type { LucideProps } from 'lucide-react';
 
-interface PerformanceMetric {
-  label: string;
-  value: string | number;
-  description: string;
-  isPositive?: boolean;
-  icon: React.ReactNode;
-  color?: string;
+interface PerformanceMetrics {
+  totalReturn: number | string;
+  monthlyReturn: number | string;
+  winRate?: number | string;
+  profitFactor?: number | string;
 }
 
 interface PerformanceSummaryProps {
-  metrics: {
-    totalReturn: number | string;
-    monthlyReturn: number | string;
-    sharpeRatio: string | number;
-    maxDrawdown: string | number;
-    winRate?: number;
-    profitFactor?: number;
-  };
+  metrics: PerformanceMetrics;
   selectedTimeRange: string;
   loading?: boolean;
   error?: string | null;
-  variant?: 'outlined' | 'elevation';
+  className?: string;
 }
 
-/**
- * Helper function to convert a percentage string to a number
- * @param value The string value to parse (e.g., "10.5%")
- * @returns The parsed number value
- */
-export const parsePercentageValue = (value: string | number): number => {
-  if (typeof value === 'number') {
-    return value;
+interface MetricDisplay {
+  label: string;
+  value: string | number;
+  description: string;
+  icon: keyof typeof import('lucide-react');
+  color: string;
+  bgColor: string;
+}
+
+const parsePercentageValue = (value: number | string): number => {
+  if (typeof value === 'string') {
+    return parseFloat(value.replace('%', ''));
   }
-  
-  // Remove the percentage sign and any whitespace
-  const cleaned = value.replace('%', '').trim();
-  // Parse as float
-  return parseFloat(cleaned);
+  return value;
 };
 
-const PerformanceSummary: React.FC<PerformanceSummaryProps> = ({ 
-  metrics, 
-  selectedTimeRange, 
-  loading = false, 
+const PerformanceSummary: React.FC<PerformanceSummaryProps> = ({
+  metrics,
+  selectedTimeRange,
+  loading = false,
   error = null,
-  variant = 'elevation',
+  className
 }) => {
-  const theme = useTheme();
+  const { theme } = useTheme();
+  const totalReturn = parsePercentageValue(metrics.totalReturn);
+  const monthlyReturn = parsePercentageValue(metrics.monthlyReturn);
+  const winRate = metrics.winRate !== undefined ? parsePercentageValue(metrics.winRate) : undefined;
+  const profitFactor = metrics.profitFactor !== undefined ? Number(metrics.profitFactor) : undefined;
 
-  // Format the metric display values
-  const formatMetric = (metric: number | string, isPercentage = false): string => {
-    if (typeof metric === 'number') {
-      return isPercentage ? `${metric > 0 ? '+' : ''}${metric.toFixed(2)}%` : metric.toFixed(2);
-    }
-    
-    if (isPercentage && typeof metric === 'string' && metric.includes('%')) {
-      const value = parsePercentageValue(metric);
-      return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`;
-    }
-    
-    return metric.toString();
-  };
-
-  // Generate the metrics array, memoized for performance
-  const performanceMetricsList = useMemo(() => {
-    if (!metrics) {
-      return [];
-    }
-
-    const totalReturn = typeof metrics.totalReturn === 'string' 
-      ? parsePercentageValue(metrics.totalReturn)
-      : metrics.totalReturn;
-      
-    const monthlyReturn = typeof metrics.monthlyReturn === 'string'
-      ? parsePercentageValue(metrics.monthlyReturn)
-      : metrics.monthlyReturn;
-      
-    const maxDrawdown = typeof metrics.maxDrawdown === 'string'
-      ? parsePercentageValue(metrics.maxDrawdown)
-      : metrics.maxDrawdown;
-
-    return [
-      {
-        label: 'Total Return',
-        value: formatMetric(totalReturn, true),
-        description: `Overall performance during the ${selectedTimeRange} period`,
-        isPositive: totalReturn >= 0,
-        icon: <AppIcon name="TrendingUp" size={24} />,
-        color: totalReturn >= 0 ? theme.palette.success.main : theme.palette.error.main,
-      },
-      {
-        label: 'Monthly Return',
-        value: formatMetric(monthlyReturn, true),
-        description: 'Performance over the last month',
-        isPositive: monthlyReturn >= 0,
-        icon: <AppIcon name="TrendingUp" size={24} />,
-        color: monthlyReturn >= 0 ? theme.palette.success.main : theme.palette.error.main,
-      },
-      {
-        label: 'Sharpe Ratio',
-        value: formatMetric(metrics.sharpeRatio),
-        description: 'Risk-adjusted return (higher is better)',
-        icon: <AssessmentIcon fontSize="medium" />,
-        color: theme.palette.info.main,
-      },
-      {
-        label: 'Max Drawdown',
-        value: formatMetric(maxDrawdown, true),
-        description: 'Largest peak-to-trough decline',
-        icon: <AppIcon name="Minus" size={24} />,
-        color: theme.palette.error.main,
-      },
-      {
-        label: 'Win Rate',
-        value: metrics.winRate !== undefined ? formatMetric(metrics.winRate, true) : 'N/A',
-        description: 'Percentage of winning trades',
-        icon: <AppIcon name="Award" size={24} />,
-        color: theme.palette.warning.main,
-      },
-      {
-        label: 'Profit Factor',
-        value: metrics.profitFactor !== undefined ? formatMetric(metrics.profitFactor) : 'N/A',
-        description: 'Gross profits divided by gross losses',
-        icon: <AppIcon name="DollarSign" size={24} />,
-        color: metrics.profitFactor !== undefined && metrics.profitFactor > 1 ? theme.palette.success.main : theme.palette.warning.main,
-      },
-    ];
-  }, [metrics, selectedTimeRange, theme.palette]);
+  const performanceMetricsList: (MetricDisplay | false)[] = [
+    {
+      label: 'Total Return',
+      value: metrics.totalReturn,
+      description: 'Total return over the selected period',
+      icon: 'TrendingUp',
+      color: totalReturn >= 0 ? 'text-success dark:text-success' : 'text-destructive dark:text-destructive',
+      bgColor: totalReturn >= 0 ? 'bg-success/10 dark:bg-success/20' : 'bg-destructive/10 dark:bg-destructive/20',
+    },
+    {
+      label: 'Monthly Return',
+      value: metrics.monthlyReturn,
+      description: 'Average monthly return',
+      icon: 'TrendingUp',
+      color: monthlyReturn >= 0 ? 'text-success dark:text-success' : 'text-destructive dark:text-destructive',
+      bgColor: monthlyReturn >= 0 ? 'bg-success/10 dark:bg-success/20' : 'bg-destructive/10 dark:bg-destructive/20',
+    },
+    {
+      label: 'Win Rate',
+      value: `${winRate}%`,
+      description: 'Percentage of winning trades',
+      icon: 'Percent',
+      color: 'text-primary dark:text-primary',
+      bgColor: 'bg-primary/10 dark:bg-primary/20',
+    },
+    profitFactor !== undefined && {
+      label: 'Profit Factor',
+      value: profitFactor.toFixed(2),
+      description: 'Gross profit divided by gross loss',
+      icon: 'DollarSign',
+      color: profitFactor > 1 ? 'text-success dark:text-success' : 'text-primary dark:text-primary',
+      bgColor: profitFactor > 1 ? 'bg-success/10 dark:bg-success/20' : 'bg-primary/10 dark:bg-primary/20',
+    },
+  ];
 
   if (loading) {
     return (
-      <Card
-        variant={variant}
-      >
-        <CardHeader 
-          title={`Performance Summary (${selectedTimeRange})`}
-          titleTypographyProps={{ variant: 'h6' }}
-        />
-        <Divider />
-        <CardContent sx={{ p: 2 }}>
-          <Grid container spacing={2}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Grid item xs={6} md={4} key={item}>
-                <Skeleton variant="rectangular" height={100} animation="wave" sx={{ borderRadius: 1 }} />
-              </Grid>
-            ))}
-          </Grid>
+      <Card className={cn("overflow-hidden", className)}>
+        <CardHeader>
+          <CardTitle>Performance Summary ({selectedTimeRange})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-6">
+            <AppIcon name="Loader" className="animate-spin text-muted-foreground" />
+          </div>
         </CardContent>
       </Card>
     );
@@ -179,97 +101,45 @@ const PerformanceSummary: React.FC<PerformanceSummaryProps> = ({
 
   if (error) {
     return (
-      <Card
-        variant={variant}
-      >
-        <CardHeader 
-          title="Performance Summary"
-          titleTypographyProps={{ variant: 'h6' }}
-        />
-        <Divider />
-        <CardContent sx={{ p: 2 }}>
-          <Alert severity="error" sx={{ borderRadius: 1 }}>{error}</Alert>
+      <Card className={cn("overflow-hidden", className)}>
+        <CardHeader>
+          <CardTitle>Performance Summary ({selectedTimeRange})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center p-6 text-destructive">
+            <AppIcon name="AlertCircle" className="mb-2" />
+            <p className="text-sm">{error}</p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card
-      variant={variant}
-      sx={{
-        borderRadius: theme.shape.borderRadius * 1.5,
-        boxShadow: variant === 'elevation' ? (theme.shadows[16] || theme.shadows[8]) : 'none',
-        height: '100%', // Ensure card takes full height of its container
-        display: 'flex',
-        flexDirection: 'column'
-      }}
-    >
-      <CardHeader 
-        title={`Performance Summary (${selectedTimeRange || 'ALL'})`}
-        titleTypographyProps={{ variant: 'h6', fontWeight: 600 }}
-        sx={{ pb: 1 }}
-      />
-      <Divider />
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, flexGrow: 1 }}>
-        <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-          {performanceMetricsList.map((metric) => {
-            const isKeyMetric = metric.label === 'Total Return' || metric.label === 'Sharpe Ratio';
+    <Card className={cn("overflow-hidden", className)}>
+      <CardHeader>
+        <CardTitle>Performance Summary ({selectedTimeRange})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {performanceMetricsList.filter(Boolean).map((metric) => {
+            const m = metric as MetricDisplay;
             return (
-              <Grid item xs={6} sm={4} key={metric.label}>
-                <Paper 
-                  variant="outlined"
-                  sx={{
-                    p: { xs: 1.5, sm: 2 },
-                    textAlign: 'center', 
-                    borderRadius: theme.shape.borderRadius,
-                    borderColor: alpha(metric.color || theme.palette.divider, 0.5),
-                    backgroundColor: alpha(metric.color || theme.palette.grey[500], 0.04),
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:hover': {
-                        transform: 'translateY(-3px)',
-                        boxShadow: `0 4px 12px ${alpha(metric.color || theme.palette.grey[500], 0.2)}`,
-                    }
-                  }}
-                >
-                  <Tooltip title={metric.description} placement="top" arrow TransitionComponent={Fade}>
-                    <Box>
-                      <Box sx={{ mb: 0.5, color: metric.color || theme.palette.text.primary, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        {metric.icon} 
-                        <Typography 
-                          variant="caption" 
-                          component="div" 
-                          color="text.secondary"
-                          fontWeight={isKeyMetric ? 500 : 400}
-                          sx={{ ml: metric.icon ? 0.5 : 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}
-                        >
-                          {metric.label}
-                        </Typography>
-                      </Box>
-                      <Typography 
-                        variant="h6"
-                        fontWeight={isKeyMetric ? 700 : 600} 
-                        color={metric.color || theme.palette.text.primary}
-                        sx={{ wordBreak: 'break-word' }}
-                      >
-                        {metric.value}
-                      </Typography>
-                      {metric.label === 'Max Drawdown' && (
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          (Lower is better)
-                        </Typography>
-                      )}
-                    </Box>
-                  </Tooltip>
-                </Paper>
-              </Grid>
+              <div key={m.label} className="flex flex-col gap-2">
+                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center transition-colors", m.bgColor)}>
+                  <AppIcon name={m.icon} className={cn("transition-colors", m.color)} size={20} />
+                </div>
+                <div>
+                  <div className={cn("text-2xl font-bold transition-colors", m.color)}>{m.value}</div>
+                  <div className="text-sm text-muted-foreground">{m.label}</div>
+                  {m.description && (
+                    <div className="text-xs text-muted-foreground mt-1">{m.description}</div>
+                  )}
+                </div>
+              </div>
             );
           })}
-        </Grid>
+        </div>
       </CardContent>
     </Card>
   );

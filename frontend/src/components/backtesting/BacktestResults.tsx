@@ -1,278 +1,282 @@
-import React, { useState } from 'react';
-import {
-  Grid,
-  Paper,
-  Typography,
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Divider,
-  useTheme
-} from '@mui/material';
-import { 
-  TrendingUp as TrendingUpIcon, 
-  TrendingDown as TrendingDownIcon,
-  ShowChart as ShowChartIcon,
-  Assessment as AssessmentIcon,
-  LocalAtm as LocalAtmIcon,
-  SwapVert as SwapVertIcon
-} from '@mui/icons-material';
-import { BacktestResult, TradeDetail } from '../../store/slices/backtestingSlice';
+import * as React from "react"
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Calendar, Target } from "lucide-react"
 
-// Interfaces for the component props
-interface BacktestConfig {
-  symbol: string;
-  timeframe: string;
-  strategy: string;
-  startDate: string;
-  endDate: string;
-  initialCapital: number;
-  commission: number;
-  positionSize: number;
-  stopLoss?: number;
-  takeProfit?: number;
-  parameters: Record<string, any>;
+import { cn } from "@/lib/utils"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+
+// Types
+interface Trade {
+  id: string
+  symbol: string
+  side: 'buy' | 'sell'
+  quantity: number
+  price: number
+  date: string
+  pnl: number
+}
+
+interface BacktestSummary {
+  totalReturn: number
+  totalTrades: number
+  winRate: number
+  sharpeRatio: number
+  maxDrawdown: number
+  startingCapital: number
+  endingCapital: number
+}
+
+interface EquityPoint {
+  date: string
+  value: number
 }
 
 interface BacktestResultsProps {
-  results: BacktestResult;
-  config: BacktestConfig | null;
+  summary?: BacktestSummary
+  trades?: Trade[]
+  equityCurve?: EquityPoint[]
+  statistics?: Record<string, number | string>
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-const TabPanel = (props: TabPanelProps) => {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`backtest-tabpanel-${index}`}
-      aria-labelledby={`backtest-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-};
-
-const BacktestResults: React.FC<BacktestResultsProps> = ({ results, config }) => {
-  const [tabValue, setTabValue] = useState(0);
-  const theme = useTheme();
-
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
-  // Use optional chaining and provide default values for metrics
-  const totalReturn = results.totalReturn ?? results.roi ?? 0; // Use totalReturn or roi
-  const maxDrawdown = results.maxDrawdown ?? results.drawdown ?? 0; // Use maxDrawdown or drawdown
-  const sharpeRatio = results.sharpeRatio ?? 0;
-  const winRate = results.winRate ?? 0;
-  // Profit factor calculation might be different based on available data
-  // For now, use the provided profitFactor or a basic calculation if possible
-  const profitFactor = results.profitFactor ?? (results.tradesDetails && results.tradesDetails.length > 0 ? calculateProfitFactor(results.tradesDetails) : 0); // Use profitFactor or calculate from trades, safely access tradesDetails
-  const totalTrades = results.trades ?? results.tradesCount ?? (results.tradesDetails?.length ?? 0); // Use trades or tradesCount or count tradesDetails
-  
-  // Simple fallback profit factor calculation if tradesDetails are available
-  function calculateProfitFactor(trades: TradeDetail[] | undefined): number {
-      if (!trades || trades.length === 0) return 0; // Handle undefined or empty trades
-      let grossProfits = 0;
-      let grossLosses = 0;
-      trades.forEach(trade => {
-          if (trade.profit > 0) {
-              grossProfits += trade.profit;
-          } else {
-              grossLosses += Math.abs(trade.profit);
-          }
-      });
-      return grossLosses > 0 ? grossProfits / grossLosses : grossProfits > 0 ? 1 : 0;
+const BacktestResults = React.memo(function BacktestResults({
+  summary = {
+    totalReturn: 15.67,
+    totalTrades: 142,
+    winRate: 68.5,
+    sharpeRatio: 1.42,
+    maxDrawdown: -8.3,
+    startingCapital: 100000,
+    endingCapital: 115670,
+  },
+  trades = [
+    {
+      id: '1',
+      symbol: 'AAPL',
+      side: 'buy',
+      quantity: 100,
+      price: 150.25,
+      date: '2024-01-15',
+      pnl: 1250.50,
+    },
+    {
+      id: '2',
+      symbol: 'GOOGL',
+      side: 'sell',
+      quantity: 50,
+      price: 2750.80,
+      date: '2024-01-16',
+      pnl: -320.75,
+    },
+    {
+      id: '3',
+      symbol: 'MSFT',
+      side: 'buy',
+      quantity: 75,
+      price: 380.45,
+      date: '2024-01-17',
+      pnl: 890.25,
+    },
+  ],
+  equityCurve = [
+    { date: '2024-01-01', value: 100000 },
+    { date: '2024-01-15', value: 105250 },
+    { date: '2024-01-30', value: 108900 },
+    { date: '2024-02-15', value: 112500 },
+    { date: '2024-02-28', value: 115670 },
+  ],
+  statistics = {
+    'Average Trade': '$245.67',
+    'Best Trade': '$1,250.50',
+    'Worst Trade': '-$520.30',
+    'Profit Factor': '1.85',
+    'Recovery Factor': '1.92',
+    'Calmar Ratio': '1.89',
+  },
+}: BacktestResultsProps) {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value)
   }
 
-  const isPositiveReturn = totalReturn > 0;
+  const formatPercentage = (value: number) => {
+    return `${value > 0 ? '+' : ''}${value.toFixed(2)}%`
+  }
 
   return (
-    <Box>
-      {config && (
-        <>
-          <Typography variant="h5" gutterBottom>
-            Backtest Results: {config.strategy} on {config.symbol}
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {config.timeframe} | {config.startDate} to {config.endDate}
-          </Typography>
-        </>
-      )}
+    <div className="w-full space-y-6 p-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Return</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatPercentage(summary.totalReturn)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {formatCurrency(summary.endingCapital - summary.startingCapital)} profit
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Performance Summary Cards */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <LocalAtmIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h6" gutterBottom>Return</Typography>
-              <Typography variant="h4">{totalReturn.toFixed(2)}%</Typography>
-              {config && (
-                <Typography variant="body2" color="text.secondary">
-                  Initial: ${config.initialCapital.toLocaleString()}
-                </Typography>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <SwapVertIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h6" gutterBottom>Win Rate</Typography>
-              <Typography variant="h4">{winRate.toFixed(1)}%</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {totalTrades} total trades
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <ShowChartIcon sx={{ fontSize: 40, mb: 1, color: 'primary.main' }} />
-              <Typography variant="h6" gutterBottom>Profit Factor</Typography>
-              <Typography variant="h4">{profitFactor.toFixed(2)}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Avg trade: N/A
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={3}>
-          <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <TrendingDownIcon color="error" sx={{ fontSize: 40, mb: 1 }} />
-              <Typography variant="h6" gutterBottom>Max Drawdown</Typography>
-              <Typography variant="h4">{maxDrawdown.toFixed(2)}%</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Sharpe: {sharpeRatio.toFixed(2)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.totalTrades}</div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round(summary.totalTrades * (summary.winRate / 100))} winning trades
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Tabbed sections for detailed results */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="backtest results tabs">
-          <Tab label="Equity Curve" />
-          <Tab label="Trades" />
-          <Tab label="Statistics" />
-        </Tabs>
-      </Box>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.winRate}%</div>
+            <Badge variant="default" className="mt-1">
+              High Performance
+            </Badge>
+          </CardContent>
+        </Card>
 
-      <TabPanel value={tabValue} index={0}>
-        <Paper 
-          variant="outlined" 
-          sx={{ 
-            p: 2, 
-            height: 400, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            borderRadius: theme.shape.borderRadius 
-          }}
-        >
-          <Typography variant="subtitle1" color="text.secondary">
-            Equity curve chart would be displayed here
-          </Typography>
-        </Paper>
-      </TabPanel>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Sharpe Ratio</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary.sharpeRatio}</div>
+            <p className="text-xs text-muted-foreground">Risk-adjusted return</p>
+          </CardContent>
+        </Card>
 
-      <TabPanel value={tabValue} index={1}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: theme.shape.borderRadius }}>
-          <TableContainer sx={{ maxHeight: 440 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>#</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Price</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell align="right">Profit ($)</TableCell>
-                  <TableCell align="right">Profit (%)</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {results.tradesDetails?.map((trade, index) => (
-                  <TableRow key={trade.id ?? index} hover sx={{ 
-                    bgcolor: trade.profit > 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(244, 67, 54, 0.1)'
-                  }}>
-                    <TableCell>{trade.id ?? index + 1}</TableCell>
-                    <TableCell>{trade.type}</TableCell>
-                    <TableCell>{trade.entryDate}</TableCell>
-                    <TableCell>{trade.entryPrice}</TableCell>
-                    <TableCell>{trade.size}</TableCell>
-                    <TableCell align="right">{trade.profit.toFixed(2)}</TableCell>
-                    <TableCell align="right">{trade.profitPercent?.toFixed(2) ?? trade.profitPct?.toFixed(2)}%</TableCell>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Max Drawdown</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatPercentage(summary.maxDrawdown)}
+            </div>
+            <p className="text-xs text-muted-foreground">Maximum loss from peak</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Portfolio Value</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(summary.endingCapital)}</div>
+            <p className="text-xs text-muted-foreground">
+              Started with {formatCurrency(summary.startingCapital)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabbed Interface */}
+      <Card>
+        <CardContent className="p-6">
+          <Tabs defaultValue="equity" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="equity">Equity Curve</TabsTrigger>
+              <TabsTrigger value="trades">Trades</TabsTrigger>
+              <TabsTrigger value="statistics">Statistics</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="equity" className="space-y-4">
+              <div className="h-64 flex items-center justify-center border rounded-lg bg-muted/50">
+                <div className="text-center space-y-2">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Equity curve visualization would be rendered here
+                  </p>
+                  <div className="text-xs text-muted-foreground">
+                    {equityCurve.length} data points from {equityCurve[0]?.date} to{' '}
+                    {equityCurve[equityCurve.length - 1]?.date}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="trades" className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">P&L</TableHead>
                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trades.map((trade) => (
+                    <TableRow key={trade.id}>
+                      <TableCell className="font-medium">{trade.symbol}</TableCell>
+                      <TableCell>
+                        <Badge variant={trade.side === 'buy' ? 'default' : 'secondary'}>
+                          {trade.side.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{trade.quantity}</TableCell>
+                      <TableCell>{formatCurrency(trade.price)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          {trade.date}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            trade.pnl > 0 ? "text-green-600" : "text-red-600"
+                          )}
+                        >
+                          {formatCurrency(trade.pnl)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+
+            <TabsContent value="statistics" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(statistics).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex justify-between items-center p-4 border rounded-lg bg-card"
+                  >
+                    <span className="font-medium">{key}</span>
+                    <span className="text-muted-foreground">{value}</span>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </TabPanel>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  )
+})
 
-      <TabPanel value={tabValue} index={2}>
-        <Paper variant="outlined" sx={{ p: 2, borderRadius: theme.shape.borderRadius }}>
-          <Typography variant="h6" gutterBottom>Detailed Statistics</Typography>
-          <TableContainer>
-            <Table size="small">
-              <TableBody>
-                <TableRow>
-                  <TableCell component="th" scope="row">Total Return</TableCell>
-                  <TableCell>{totalReturn.toFixed(2)}%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell component="th" scope="row">Max Drawdown</TableCell>
-                  <TableCell>{maxDrawdown.toFixed(2)}%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell component="th" scope="row">Sharpe Ratio</TableCell>
-                  <TableCell>{sharpeRatio.toFixed(2)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell component="th" scope="row">Win Rate</TableCell>
-                  <TableCell>{winRate.toFixed(1)}%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell component="th" scope="row">Profit Factor</TableCell>
-                  <TableCell>{profitFactor.toFixed(2)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell component="th" scope="row">Total Trades</TableCell>
-                  <TableCell>{totalTrades}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </TabPanel>
-    </Box>
-  );
-};
-
-export default BacktestResults;
+export default BacktestResults

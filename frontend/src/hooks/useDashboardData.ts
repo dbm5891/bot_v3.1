@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { fetchStrategies } from '../store/slices/strategySlice';
@@ -6,6 +6,16 @@ import { fetchAvailableData, fetchAvailableSymbols } from '../store/slices/dataS
 import { fetchBacktestHistory } from '../store/slices/backtestingSlice';
 import { fetchPortfolioPerformance } from '../store/slices/portfolioSlice';
 import { addNotification } from '../store/slices/uiSlice';
+import { generatePerformanceData } from '../utils/generatePerformanceData';
+
+// Debounce utility function
+const debounce = <T extends (...args: any[]) => void>(func: T, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 /**
  * Custom hook for managing dashboard data loading and refreshing
@@ -18,6 +28,7 @@ export const useDashboardData = (initialTimeRange: string = 'ALL') => {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Get data from the Redux store
   const { strategies, loading: strategiesLoading, error: strategiesError } = useSelector((state: RootState) => state.strategy);
@@ -25,26 +36,74 @@ export const useDashboardData = (initialTimeRange: string = 'ALL') => {
   const { results, loading: backtestingLoading, error: backtestingError } = useSelector((state: RootState) => state.backtesting);
   const { performanceData, benchmarkData, loading: portfolioLoading, error: portfolioError, metrics } = useSelector((state: RootState) => state.portfolio);
 
+  // Generate mock data for candlestick and volume
+  const { candlestickData, volumeData } = useMemo(() => {
+    if (!performanceData || performanceData.length === 0) {
+      return { candlestickData: [], volumeData: [] };
+    }
+    
+    const candleData = performanceData.map((p, i) => {
+        const open = p.value * (1 - (Math.random() - 0.5) * 0.1);
+        const close = p.value * (1 - (Math.random() - 0.5) * 0.1);
+        const high = Math.max(open, close) * (1 + Math.random() * 0.05);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.05);
+        return { date: p.date, open, high, low, close };
+    });
+
+    const volData = performanceData.map(p => ({
+        date: p.date,
+        volume: Math.random() * 1000000 + 50000,
+    }));
+
+    return { candlestickData: candleData, volumeData: volData };
+  }, [performanceData]);
+
   // Function to refresh data
   const refreshData = useCallback(() => {
-    dispatch(fetchStrategies());
-    dispatch(fetchAvailableData());
-    dispatch(fetchAvailableSymbols());
-    dispatch(fetchBacktestHistory());
-    dispatch(fetchPortfolioPerformance(selectedTimeRange));
-    setLastRefreshed(new Date());
+    setIsRefreshing(prev => {
+      if (prev) return prev; // Don't refresh if already refreshing
+      
+      Promise.all([
+        dispatch(fetchStrategies()),
+        dispatch(fetchAvailableData()),
+        dispatch(fetchAvailableSymbols()),
+        dispatch(fetchBacktestHistory()),
+        dispatch(fetchPortfolioPerformance(selectedTimeRange))
+      ]).finally(() => {
+        setIsRefreshing(false);
+        setLastRefreshed(new Date());
+      });
+      
+      return true;
+    });
   }, [dispatch, selectedTimeRange]);
 
+  // Debounced refresh function - only refresh portfolio performance to avoid conflicts
+  const debouncedRefresh = useCallback(
+    debounce(() => {
+      if (!isRefreshing) {
+        setIsRefreshing(true);
+        dispatch(fetchPortfolioPerformance(selectedTimeRange)).finally(() => {
+          setIsRefreshing(false);
+          setLastRefreshed(new Date());
+        });
+      }
+    }, 1000),
+    [dispatch, selectedTimeRange, isRefreshing]
+  );
+
   // Handle time range changes
-  const handleTimeRangeChange = (range: string) => {
+  const handleTimeRangeChange = useCallback((range: string) => {
     setSelectedTimeRange(range);
     dispatch(fetchPortfolioPerformance(range));
-  };
+  }, [dispatch]);
 
-  // Effect for initial data loading
+  // Effect for initial data loading (only fetch portfolio performance since other data is loaded in App.tsx)
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    if (!performanceData || performanceData.length === 0) {
+      dispatch(fetchPortfolioPerformance(selectedTimeRange));
+    }
+  }, [dispatch, selectedTimeRange, performanceData]);
 
   // Effect for handling auto-refresh
   useEffect(() => {
@@ -68,14 +127,14 @@ export const useDashboardData = (initialTimeRange: string = 'ALL') => {
     
     // Set up interval for refresh
     const refreshTimer = setInterval(() => {
-      refreshData();
+      debouncedRefresh();
     }, autoRefreshInterval * 1000);
     
     return () => {
       clearInterval(countdownTimer);
       clearInterval(refreshTimer);
     };
-  }, [autoRefreshInterval, refreshData]);
+  }, [autoRefreshInterval, debouncedRefresh]);
 
   // Show toast notifications on errors
   useEffect(() => {
@@ -166,6 +225,8 @@ export const useDashboardData = (initialTimeRange: string = 'ALL') => {
     results: results?.slice(0, 5) || [], // Recent backtests (top 5)
     performanceData: filteredPerformanceData,
     benchmarkData: filteredBenchmarkData,
+    candlestickData,
+    volumeData,
     metrics: enhancedMetrics,
     
     // State
@@ -187,9 +248,10 @@ export const useDashboardData = (initialTimeRange: string = 'ALL') => {
     formatLastRefreshed,
     countdownSeconds,
     autoRefreshInterval,
+    isRefreshing,
     
     // Actions
-    refreshData,
+    refreshData: debouncedRefresh,
     handleTimeRangeChange,
     setAutoRefreshInterval
   };

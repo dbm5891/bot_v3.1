@@ -2,11 +2,8 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import theme from '../theme';
 import { vi } from 'vitest';
 import { RootState } from '../store';
 
@@ -167,28 +164,6 @@ const defaultInitialState: RootState = {
   tradingCalendar: {
     events: [
       {
-        id: 'earnings-AAPL-2024-01-25-1',
-        date: '2024-01-25',
-        title: 'AAPL Earnings (AMC)',
-        description: 'Est. EPS: 2.10, Act. EPS: N/A',
-        type: 'earnings',
-        impact: 'high',
-        symbol: 'AAPL',
-        estimate: 2.10,
-        actual: null,
-      },
-      {
-        id: 'economic-2024-01-26-1',
-        date: '2024-01-26',
-        title: 'GDP Growth Rate',
-        type: 'economic',
-        impact: 'high',
-        country: 'US',
-        actual: null,
-        previous: 2.1,
-        estimate: 2.3,
-      },
-      {
         id: 'holiday-2024-01-15-MLK',
         date: '2024-01-15',
         title: 'Martin Luther King Jr. Day',
@@ -236,10 +211,7 @@ export function renderWithProviders(
     return (
       <Provider store={testStore}>
         <MemoryRouter initialEntries={[route]}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            {children}
-          </ThemeProvider>
+          {children}
         </MemoryRouter>
       </Provider>
     );

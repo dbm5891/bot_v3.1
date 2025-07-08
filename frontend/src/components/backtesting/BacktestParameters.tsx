@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Slider,
-  Typography,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Paper,
-  Button,
-} from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchStrategies, Strategy } from '../../store/slices/strategySlice';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RefreshCw, Play } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Interface for the backtest configuration
 interface BacktestConfig {
@@ -35,12 +27,7 @@ interface BacktestConfig {
   parameters: Record<string, any>;
 }
 
-interface BacktestParametersProps {
-  onSubmit: (config: BacktestConfig) => Promise<void>;
-  loading: boolean;
-}
-
-const BacktestParameters: React.FC<BacktestParametersProps> = ({ onSubmit, loading }) => {
+const BacktestParameters = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { strategies: availableStrategiesFromStore, loading: strategiesLoading } = useSelector((state: RootState) => state.strategy);
 
@@ -53,7 +40,6 @@ const BacktestParameters: React.FC<BacktestParametersProps> = ({ onSubmit, loadi
   const [commission, setCommission] = useState<number>(0.1);
   const [positionSize, setPositionSize] = useState<number>(10);
   const [stopLoss, setStopLoss] = useState<number | undefined>(5);
-  const [takeProfit, setTakeProfit] = useState<number | undefined>(10);
   const [parameters, setParameters] = useState<Record<string, any>>({
     fastPeriod: 10,
     slowPeriod: 30,
@@ -80,236 +66,293 @@ const BacktestParameters: React.FC<BacktestParametersProps> = ({ onSubmit, loadi
     }));
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const selectedStrategyObject = availableStrategiesFromStore.find(s => s.id === selectedStrategyId);
-
-    const config: BacktestConfig = {
-      strategyId: selectedStrategyId,
-      symbol,
-      timeframe,
-      strategy: selectedStrategyObject ? selectedStrategyObject.name : '',
-      startDate,
-      endDate,
-      initialCapital,
-      commission,
-      positionSize,
-      stopLoss,
-      takeProfit,
-      parameters
-    };
-    
-    onSubmit(config);
+  // Add a handler for refresh
+  const handleRefreshStrategies = () => {
+    dispatch(fetchStrategies());
   };
 
+  // Find the selected strategy object
+  const selectedStrategyObject = availableStrategiesFromStore.find(s => s.id === selectedStrategyId);
+
   return (
-    <Box component="form" onSubmit={handleFormSubmit} sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">
         Market Data Settings
-      </Typography>
-      <Paper sx={{ p: 2, mb: 4 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel id="symbol-label">Symbol</InputLabel>
-              <Select
-                labelId="symbol-label"
-                id="symbol"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value as string)}
-                label="Symbol"
-              >
+      </h1>
+      <Card className="border border-border/50 bg-card/50 backdrop-blur-sm mb-4">
+        <CardContent className="p-6">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="symbol-select" className="block text-sm font-medium">
+              Symbol
+            </Label>
+            <Select value={symbol} onValueChange={setSymbol}>
+              <SelectTrigger id="symbol-select" className="mt-1 h-10">
+                <SelectValue placeholder="Select symbol" />
+              </SelectTrigger>
+              <SelectContent>
                 {availableSymbols.map((sym) => (
-                  <MenuItem key={sym} value={sym}>
+                  <SelectItem key={sym} value={sym}>
                     {sym}
-                  </MenuItem>
+                  </SelectItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Timeframe</InputLabel>
-              <Select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value as string)}
-                label="Timeframe"
-              >
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="timeframe-select" className="block text-sm font-medium">
+              Timeframe
+            </Label>
+            <Select value={timeframe} onValueChange={setTimeframe}>
+              <SelectTrigger id="timeframe-select" className="mt-1 h-10">
+                <SelectValue placeholder="Select timeframe" />
+              </SelectTrigger>
+              <SelectContent>
                 {timeframes.map((tf) => (
-                  <MenuItem key={tf} value={tf}>
+                  <SelectItem key={tf} value={tf}>
                     {tf}
-                  </MenuItem>
+                  </SelectItem>
                 ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel id="strategy-label">Strategy</InputLabel>
-              <Select
-                labelId="strategy-label"
-                id="strategy"
-                value={selectedStrategyId}
-                onChange={(e) => setSelectedStrategyId(e.target.value as string)}
-                label="Strategy"
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="strategy-select" className="block text-sm font-medium">
+              Strategy
+            </Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Select 
+                value={selectedStrategyId} 
+                onValueChange={setSelectedStrategyId}
                 disabled={strategiesLoading || availableStrategiesFromStore.length === 0}
               >
-                {availableStrategiesFromStore.map((strat: Strategy) => (
-                  <MenuItem key={strat.id} value={strat.id}>
-                    {strat.name}
-                  </MenuItem>
-                ))}
+                <SelectTrigger id="strategy-select" className="h-10 flex-1">
+                  <SelectValue placeholder="Select strategy" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStrategiesFromStore.map((strat: Strategy) => (
+                    <SelectItem key={strat.id} value={strat.id}>
+                      {strat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Initial Capital ($)"
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRefreshStrategies}
+                disabled={strategiesLoading}
+                className="h-10 w-10 shrink-0"
+                aria-label="Refresh strategies"
+              >
+                <RefreshCw className={cn("h-4 w-4", strategiesLoading && "animate-spin")} />
+              </Button>
+            </div>
+            {/* Show strategy description */}
+            {selectedStrategyObject && selectedStrategyObject.description && (
+              <p className="text-sm text-gray-500 mt-1">
+                {selectedStrategyObject.description}
+              </p>
+            )}
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="initialCapital" className="block text-sm font-medium">
+              Initial Capital ($)
+            </Label>
+            <Input
               type="number"
+              min={100}
+              id="initialCapital"
+              name="initialCapital"
               value={initialCapital}
               onChange={(e) => setInitialCapital(Number(e.target.value))}
-              fullWidth
-              InputProps={{ inputProps: { min: 100 } }}
+              className="mt-1 h-10"
+              placeholder="Enter initial capital"
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="Start Date"
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="startDate" className="block text-sm font-medium">
+              Start Date
+            </Label>
+            <Input
               type="date"
+              id="startDate"
+              name="startDate"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
+              className="mt-1 h-10"
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              label="End Date"
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <Label htmlFor="endDate" className="block text-sm font-medium">
+              End Date
+            </Label>
+            <Input
               type="date"
+              id="endDate"
+              name="endDate"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
+              className="mt-1 h-10"
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              label="Commission (%)"
+          </div>
+          <div className="col-span-12 md:col-span-4">
+            <Label htmlFor="commission" className="block text-sm font-medium">
+              Commission (%)
+            </Label>
+            <Input
               type="number"
+              min={0}
+              step={0.01}
+              id="commission"
+              name="commission"
               value={commission}
               onChange={(e) => setCommission(Number(e.target.value))}
-              fullWidth
-              InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+              className="mt-1 h-10"
+              placeholder="0.1"
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <TextField
-              label="Position Size (%)"
+          </div>
+          <div className="col-span-12 md:col-span-4">
+            <Label htmlFor="positionSize" className="block text-sm font-medium">
+              Position Size (%)
+            </Label>
+            <Input
               type="number"
+              min={1}
+              max={100}
+              id="positionSize"
+              name="positionSize"
               value={positionSize}
               onChange={(e) => setPositionSize(Number(e.target.value))}
-              fullWidth
-              InputProps={{ inputProps: { min: 1, max: 100 } }}
+              className="mt-1 h-10"
+              placeholder="10"
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControlLabel
-              control={
-                <Switch
+          </div>
+          <div className="col-span-12 md:col-span-4">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="useStopLoss"
                   checked={stopLoss !== undefined}
-                  onChange={(e) => setStopLoss(e.target.checked ? 5 : undefined)}
+                  onCheckedChange={(checked: boolean) => setStopLoss(checked ? 5 : undefined)}
                 />
-              }
-              label="Use Stop Loss"
-            />
-            {stopLoss !== undefined && (
-              <TextField
-                label="Stop Loss (%)"
-                type="number"
-                value={stopLoss}
-                onChange={(e) => setStopLoss(Number(e.target.value))}
-                fullWidth
-                InputProps={{ inputProps: { min: 0.1, step: 0.1 } }}
-                sx={{ mt: 2 }}
-              />
-            )}
-          </Grid>
-        </Grid>
-      </Paper>
+                <Label htmlFor="useStopLoss" className="text-sm font-medium">
+                  Use Stop Loss
+                </Label>
+              </div>
+              {stopLoss !== undefined && (
+                <div className="space-y-2">
+                  <Label htmlFor="stopLoss" className="text-sm font-medium">
+                    Stop Loss (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0.1}
+                    step={0.1}
+                    id="stopLoss"
+                    name="stopLoss"
+                    value={stopLoss}
+                    onChange={(e) => setStopLoss(Number(e.target.value))}
+                    className="h-10"
+                    placeholder="5"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        </CardContent>
+      </Card>
 
-      <Typography variant="h6" gutterBottom>
-        Strategy Parameters
-      </Typography>
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={3}>
+      <Card className="border border-border/50 bg-card/50 backdrop-blur-sm mb-3">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">Strategy Parameters</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+        <div className="grid grid-cols-12 gap-4">
           {selectedStrategyId && availableStrategiesFromStore.find(s => s.id === selectedStrategyId)?.name === 'MovingAverageCrossover' && (
             <>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ width: '100%' }}>
-                  <Typography gutterBottom>
+              <div className="col-span-12 md:col-span-4">
+                <div className="w-full space-y-3">
+                  <Label htmlFor="fast-period" className="text-sm font-medium">
                     Fast Period: {parameters.fastPeriod}
-                  </Typography>
-                  <Slider
+                  </Label>
+                  <input
+                    id="fast-period"
+                    name="fastPeriod"
+                    type="range"
                     value={parameters.fastPeriod || 10}
-                    onChange={(_, value) => handleParameterChange('fastPeriod', value as number)}
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks
+                    onChange={(e) => handleParameterChange('fastPeriod', Number(e.target.value))}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
                     min={2}
                     max={50}
                   />
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ width: '100%' }}>
-                  <Typography gutterBottom>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>2</span>
+                    <span>50</span>
+                  </div>
+                </div>
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <div className="w-full space-y-3">
+                  <Label htmlFor="slow-period" className="text-sm font-medium">
                     Slow Period: {parameters.slowPeriod}
-                  </Typography>
-                  <Slider
+                  </Label>
+                  <input
+                    id="slow-period"
+                    name="slowPeriod"
+                    type="range"
                     value={parameters.slowPeriod || 30}
-                    onChange={(_, value) => handleParameterChange('slowPeriod', value as number)}
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks
+                    onChange={(e) => handleParameterChange('slowPeriod', Number(e.target.value))}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
                     min={5}
                     max={200}
                   />
-                </Box>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Box sx={{ width: '100%' }}>
-                  <Typography gutterBottom>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>5</span>
+                    <span>200</span>
+                  </div>
+                </div>
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <div className="w-full space-y-3">
+                  <Label htmlFor="signal-period" className="text-sm font-medium">
                     Signal Period: {parameters.signalPeriod}
-                  </Typography>
-                  <Slider
+                  </Label>
+                  <input
+                    id="signal-period"
+                    name="signalPeriod"
+                    type="range"
                     value={parameters.signalPeriod || 9}
-                    onChange={(_, value) => handleParameterChange('signalPeriod', value as number)}
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks
+                    onChange={(e) => handleParameterChange('signalPeriod', Number(e.target.value))}
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer slider"
                     min={1}
                     max={50}
                   />
-                </Box>
-              </Grid>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1</span>
+                    <span>50</span>
+                  </div>
+                </div>
+              </div>
             </>
           )}
-        </Grid>
-      </Paper>
+        </div>
+        </CardContent>
+      </Card>
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+      <div className="flex justify-end mt-3">
         <Button
           type="submit"
-          variant="contained"
-          color="primary"
-          size="large"
-          disabled={loading}
+          size="lg"
+          disabled={strategiesLoading}
+          className="h-12 px-8 flex items-center gap-2"
         >
-          {loading ? 'Running Backtest...' : 'Run Backtest'}
+          <Play className="w-4 h-4" />
+          {strategiesLoading ? 'Running Backtest...' : 'Run Backtest'}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

@@ -1,17 +1,5 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  List, 
-  ListItem, 
-  ListItemButton, 
-  ListItemIcon, 
-  ListItemText,
-  alpha,
-  useTheme,
-  Tooltip,
-  Divider
-} from '@mui/material';
 import AppIcon, { AppIconProps } from '../icons/AppIcon';
 
 // Use the correct type from AppIconProps
@@ -32,7 +20,6 @@ interface NavMenuProps {
 const NavMenu: React.FC<NavMenuProps> = ({ items = [], onNavigation }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
 
   const handleNavigation = (path: string) => {
     if (onNavigation) {
@@ -43,77 +30,58 @@ const NavMenu: React.FC<NavMenuProps> = ({ items = [], onNavigation }) => {
   };
 
   return (
-    <Box sx={{ py: 1 }}>
-      <List>
+    <div className="py-1">
+      <ul className="list-none">
         {items.map((item, index) => {
           const isActive = location.pathname === item.path;
           return (
-            <ListItem 
+            <li 
               key={index} 
-              disablePadding
-              sx={{ 
-                mb: 0.8,
-                transition: 'transform 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateX(4px)'
-                }
-              }}
+              className="mb-0.8 transition-transform hover:translate-x-4"
             >
-              <Tooltip title={item.description || item.title} placement="right" arrow>
-                <ListItemButton
-                  onClick={() => handleNavigation(item.path)}
-                  sx={{
-                    borderRadius: 2,
-                    mx: 1,
-                    position: 'relative',
-                    py: 1.2,
-                    bgcolor: isActive ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                    color: isActive ? theme.palette.primary.main : theme.palette.text.primary,
-                    '&::before': isActive ? {
-                      content: '""',
-                      position: 'absolute',
-                      left: '-8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '4px',
-                      height: '60%',
-                      borderRadius: '0 4px 4px 0',
-                      backgroundImage: `linear-gradient(to bottom, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                    } : {},
-                    '&:hover': {
-                      bgcolor: isActive 
-                        ? alpha(theme.palette.primary.main, 0.15) 
-                        : alpha(theme.palette.primary.main, 0.05),
-                    },
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 36,
-                      color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
-                    }}
-                  >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="flex items-center justify-center w-8 h-8 mr-2">
                     <AppIcon name={item.icon} />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.title}
-                    primaryTypographyProps={{
-                      fontSize: '0.9rem',
-                      fontWeight: isActive ? 600 : 500,
-                    }}
-                  />
-                </ListItemButton>
-              </Tooltip>
-            </ListItem>
+                  </div>
+                  <span className="text-sm font-medium">
+                    {item.title}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  {item.description && (
+                    <span className="text-xs text-gray-500 mr-2">{item.description}</span>
+                  )}
+                  <button
+                    onClick={() => handleNavigation(item.path)}
+                    className={`
+                      ${isActive ? 'bg-primary-100' : 'bg-transparent'}
+                      ${isActive ? 'text-primary-600' : 'text-gray-500'}
+                      ${isActive ? 'border-primary-600' : 'border-transparent'}
+                      ${isActive ? 'hover:bg-primary-200' : 'hover:bg-primary-50'}
+                      ${isActive ? 'hover:border-primary-600' : 'hover:border-transparent'}
+                      ${isActive ? 'font-semibold' : 'font-normal'}
+                      ${isActive ? 'py-1.2' : 'py-1.2'}
+                      ${isActive ? 'px-2' : 'px-2'}
+                      ${isActive ? 'rounded-2' : 'rounded-2'}
+                      ${isActive ? 'transition-all duration-200' : 'transition-all duration-200'}
+                    `}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-primary-600 to-secondary-600 rounded-0 4px 4px 0"></span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </li>
           );
         })}
-      </List>
+      </ul>
       
       {items.length > 0 && (
-        <Divider sx={{ my: 1.5, mx: 2, borderColor: alpha(theme.palette.divider, 0.5) }} />
+        <div className="my-1.5 mx-2 border-t border-gray-200"></div>
       )}
-    </Box>
+    </div>
   );
 };
 

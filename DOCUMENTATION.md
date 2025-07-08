@@ -104,3 +104,9 @@ To maintain and extend this documentation:
 
 - April 2025: Added TradingView Integration Guide
 - April 2025: Complete documentation overhaul and indexing
+
+## Migration Notes
+
+This version of the documentation is updated to reflect the use of shadcn/ui and Tailwind CSS. If you are migrating from a previous version, please refer to the [MUI Migration Guide](MUI_MIGRATION.md) for instructions on how to update your UI components.
+
+All frontend UI is now built with shadcn/ui and Tailwind CSS, and any previous MUI references are obsolete.

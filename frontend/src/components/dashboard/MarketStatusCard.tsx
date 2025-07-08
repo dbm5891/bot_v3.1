@@ -1,44 +1,30 @@
 import React, { useEffect, useCallback } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Typography,
-  Grid,
-  Chip,
-  Skeleton,
-  Alert,
-  Tooltip,
-  IconButton,
-  useTheme,
-  alpha,
-  Button,
-} from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  Schedule as ScheduleIcon,
-  Refresh as RefreshIcon,
-  ArrowDropUp as ArrowUpIcon,
-  ArrowDropDown as ArrowDownIcon,
-} from '@mui/icons-material';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchIndexQuotes, IndexQuote } from '../../store/slices/marketDataSlice';
-import AppIcon from '../icons/AppIcon';
+import { 
+  RefreshCw, 
+  Clock, 
+  ArrowUp, 
+  ArrowDown 
+} from 'lucide-react';
+
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface MarketStatusCardProps {
   onRefreshProp?: () => void;
-  variant?: 'outlined' | 'elevation';
+  className?: string;
 }
 
 const MarketStatusCard: React.FC<MarketStatusCardProps> = ({
   onRefreshProp,
-  variant = 'elevation',
+  className,
 }) => {
-  const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
 
   const { 
@@ -57,7 +43,7 @@ const MarketStatusCard: React.FC<MarketStatusCardProps> = ({
 
   useEffect(() => {
     if (!lastUpdated) {
-        dispatch(fetchIndexQuotes());
+      dispatch(fetchIndexQuotes());
     }
   }, [dispatch, lastUpdated]);
 
@@ -71,27 +57,42 @@ const MarketStatusCard: React.FC<MarketStatusCardProps> = ({
 
   if (isLoading && indices.length === 0) {
     return (
-      <Card 
-        variant={variant}
-        sx={{ borderRadius: `${theme.shape.borderRadius}px`, height: '100%' }}
-      >
-        <CardHeader 
-          title="Market Status"
-          action={
-            <Tooltip title="Refresh market data">
-              <span>
-                <IconButton size="small" onClick={handleRefresh} disabled={isLoading} aria-label="Refresh market data" color="primary">
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          }
-        />
-        <Divider />
-        <CardContent>
-          <Skeleton variant="rectangular" height={150} animation="wave" />
-          <Skeleton variant="text" sx={{ mt: 1 }} animation="wave" />
-          <Skeleton variant="text" width="60%" animation="wave" />
+      <Card className={cn("h-full", className)}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <h3 className="font-medium text-lg">Market Status</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={isLoading}
+                onClick={handleRefresh}
+                aria-label="Refresh market data"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh market data</p>
+            </TooltipContent>
+          </Tooltip>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6">
+          <div className="space-y-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
@@ -111,34 +112,34 @@ const MarketStatusCard: React.FC<MarketStatusCardProps> = ({
     }
 
     return (
-      <Card 
-        variant={variant}
-        sx={{ borderRadius: `${theme.shape.borderRadius}px`, height: '100%' }}
-      >
-        <CardHeader 
-          title="Market Status"
-           action={
-            <Tooltip title="Refresh market data">
-              <span>
-                <IconButton size="small" onClick={handleRefresh} aria-label="Refresh market data" color="primary">
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          }
-        />
-        <Divider />
-        <CardContent>
-          <Alert severity="error" variant="filled" sx={{mb:1}}>
-            Market Data Connection Issue
-            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-              {detailedErrorMessage}
-            </Typography>
-            <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-              If the issue persists, you can also visit the <a href="https://site.financialmodelingprep.com/faqs?search=why-is-my-api-key-invalid" target="_blank" rel="noopener noreferrer" style={{color: theme.palette.error.contrastText}}>FinancialModelingPrep FAQ</a>.
-            </Typography>
-          </Alert>
-          <Button onClick={handleRefresh} variant="outlined" size="small" sx={{ mt: 1 }}>Try Again</Button>
+      <Card className={cn("h-full", className)}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <h3 className="font-medium text-lg">Market Status</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleRefresh}
+                aria-label="Refresh market data"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh market data</p>
+            </TooltipContent>
+          </Tooltip>
+        </CardHeader>
+        <Separator />
+        <CardContent className="pt-6">
+          <div className="bg-destructive/10 text-destructive rounded-lg p-4">
+            <p className="font-medium">Market Data Connection Issue</p>
+            <p className="text-sm mt-2 text-destructive/90">{detailedErrorMessage}</p>
+          </div>
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="mt-4 w-full">
+            Try Again
+          </Button>
         </CardContent>
       </Card>
     );
@@ -147,145 +148,101 @@ const MarketStatusCard: React.FC<MarketStatusCardProps> = ({
   const displayedIndices = indices.slice(0, 4);
 
   return (
-    <Card 
-      variant={variant}
-      sx={{ borderRadius: `${theme.shape.borderRadius}px`, height: '100%' }}
-    >
-      <CardHeader
-        title="Market Status"
-        titleTypographyProps={{ variant: 'h6' }}
-        action={
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {lastUpdated && (
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                  px: 1,
-                  py: 0.5,
-                  borderRadius: 1,
-                  mr: 1,
-                }}
+    <Card className={cn("h-full", className)}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+        <h3 className="font-medium text-lg">Market Status</h3>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <div className="flex items-center bg-muted px-2 py-1 rounded-md text-xs">
+              <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+              <span className="text-muted-foreground">{formatTimestamp(lastUpdated)}</span>
+            </div>
+          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleRefresh}
+                disabled={isLoading}
+                aria-label="Refresh market data"
+                className={cn(
+                  "transition-all duration-200",
+                  isLoading && "animate-spin"
+                )}
               >
-                <ScheduleIcon fontSize="small" color="primary" sx={{ mr: 0.5, fontSize: '1rem' }} />
-                <Typography variant="caption" color="text.secondary">
-                  {formatTimestamp(lastUpdated)}
-                </Typography>
-              </Box>
-            )}
-            <Tooltip title="Refresh market data">
-              <span style={{ display: 'inline-flex' }}>
-                <IconButton 
-                  size="small" 
-                  onClick={handleRefresh} 
-                  aria-label="Refresh market data"
-                  color="primary"
-                  disabled={isLoading}
-                  sx={{ 
-                    animation: isLoading ? 'spin 0.8s linear infinite' : 'none',
-                    backgroundColor: isLoading ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
-                    '&:hover': {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.15),
-                    },
-                  }}
-                >
-                  <RefreshIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Box>
-        }
-      />
-      <Divider />
-      <CardContent sx={{ p: 0, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh market data</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-0">
         {displayedIndices.length === 0 && !isLoading ? (
-          <Box sx={{ p:2, textAlign: 'center', flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <Typography variant="body2" color="text.secondary">
+          <div className="p-6 text-center">
+            <p className="text-sm text-muted-foreground">
               No market index data available.
               <br />
               Please check your API key or network connection.
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <Grid container spacing={0} sx={{ flexGrow: 1 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 divide-y divide-border sm:divide-y-0">
             {displayedIndices.map((indexData: IndexQuote, arrayIndex) => {
               const isPositive = indexData.change >= 0;
-              const changeColor = isPositive ? theme.palette.success.main : theme.palette.error.main;
+              const changeColor = isPositive ? "text-success" : "text-destructive";
+              const bgColor = isPositive ? "bg-success/10" : "bg-destructive/10";
               
               return (
-                <Grid item xs={6} sm={12} md={6} key={indexData.symbol} sx={{ display: 'flex' }}>
-                  <Box
-                    sx={{
-                      p: 2,
-                      flexGrow: 1,
-                      borderBottom: (arrayIndex < displayedIndices.length - (displayedIndices.length % 2 === 0 ? 2 : 1) ) ? `1px solid ${theme.palette.divider}` : 'none',
-                      borderRight: (arrayIndex % 2 === 0 && displayedIndices.length > 1) ? `1px solid ${theme.palette.divider}` : 'none',
-                      transition: 'background-color 0.2s ease',
-                      '&:hover': {
-                        backgroundColor: alpha(theme.palette.action.hover, 0.04),
-                      },
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between'
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.5 }}>
-                      <Box>
-                        <Typography 
-                          variant="subtitle2" 
-                          component="div"
-                          sx={{ fontWeight: 500, lineHeight: 1.3 }}
-                          gutterBottom
-                        >
-                          {indexData.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" component="div">
-                          {indexData.symbol}
-                        </Typography>
-                      </Box>
-                      <Chip 
-                        icon={<AppIcon name={isPositive ? 'ArrowUp' : 'ArrowDown'} size={18} />}
-                        label={
-                          typeof indexData.changesPercentage === 'number' && isFinite(indexData.changesPercentage)
-                            ? `${indexData.changesPercentage.toFixed(2)}%`
-                            : 'N/A'
-                        }
-                        size="small"
-                        color={isPositive ? "success" : "error"}
-                        variant="filled"
-                        sx={{
-                          fontWeight: 'medium',
-                          height: 22,
-                          fontSize: '0.7rem',
-                          '.MuiChip-icon': { fontSize: '1.2rem' }
-                        }}
-                      />
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="h6" component="div" sx={{ fontWeight: 'medium' }}>
-                        {typeof indexData.price === 'number' && isFinite(indexData.price)
-                          ? indexData.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})
-                          : 'N/A'}
-                      </Typography>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ color: changeColor }}
-                      >
-                        {typeof indexData.change === 'number' && isFinite(indexData.change)
-                          ? `${isPositive ? '+' : ''}${indexData.change.toFixed(2)}`
-                          : 'N/A'}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Grid>
+                <div 
+                  key={indexData.symbol} 
+                  className={cn(
+                    "p-4 hover:bg-muted/40 transition-colors",
+                    arrayIndex % 2 === 0 && "sm:border-r sm:border-border"
+                  )}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="font-medium text-sm">{indexData.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{indexData.symbol}</p>
+                    </div>
+                    <div className={cn(
+                      "text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1",
+                      bgColor,
+                      changeColor
+                    )}>
+                      {isPositive ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(indexData.change).toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-lg font-semibold">
+                      {indexData.price.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                    <span className={cn("text-sm", changeColor)}>
+                      {isPositive ? '+' : ''}{indexData.change.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
               );
             })}
-          </Grid>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 };
 
+// Example usage
 export default MarketStatusCard; 

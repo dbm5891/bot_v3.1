@@ -48,7 +48,7 @@ If you're accessing the deployed application:
 - **TypeScript** - Type-safe JavaScript
 - **Vite** - Build tool and development server
 - **Redux/RTK** - State management
-- **Material UI** - Component library
+- **shadcn/ui** - Component library
 - **Chart.js & Lightweight Charts** - Data visualization
 - **React Router** - Navigation
 - **Axios** - API communication
@@ -136,3 +136,41 @@ Refer to the root [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guideli
 - [Component Diagram](../diagrams/component_diagram.md)
 - [Quickstart Guide](../QUICKSTART.md)
 - [Troubleshooting](../TROUBLESHOOTING.md)
+
+## Migration Note
+
+If you're migrating from a previous version of the frontend, please refer to the migration guide for any changes in the setup or usage.
+
+## Migration FAQ & Troubleshooting
+
+**Q: My old MUI component or style is missing!**
+A: All MUI components have been removed. Use shadcn/ui and Tailwind CSS equivalents. See the UI Component Library & Styling section above.
+
+**Q: How do I add a new button, card, or alert?**
+A: Use the shadcn/ui primitives and Tailwind classes. See https://ui.shadcn.com/docs/components for examples.
+
+**Q: My build fails with missing MUI imports!**
+A: Search for any remaining `@mui/material` or `@mui/icons-material` imports and remove them. Replace with shadcn/ui or Tailwind equivalents.
+
+## UI Component Library & Styling
+
+This project uses [shadcn/ui](https://ui.shadcn.com/) for all React UI components and [Tailwind CSS](https://tailwindcss.com/) for utility-first styling. All new components should be built using these libraries.
+
+### Adding New Components
+- Use shadcn/ui primitives (Button, Card, Alert, Tabs, etc.) for all new UI.
+- Use Tailwind CSS utility classes for layout, spacing, and custom styles.
+- For icons, use [Lucide](https://lucide.dev/) or [Heroicons](https://heroicons.com/).
+
+### Migrating from MUI
+- All MUI components have been removed. If you are updating old code, replace any remaining MUI patterns with shadcn/ui and Tailwind equivalents.
+
+## Contributor Notes
+
+- All new UI code must use shadcn/ui and Tailwind CSS.
+- Do not reintroduce MUI or Material UI dependencies.
+- Code review will check for adherence to the new UI stack.
+
+## Further Reading
+
+- [shadcn/ui Documentation](https://ui.shadcn.com/docs)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)

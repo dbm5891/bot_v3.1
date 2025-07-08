@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import api from '../../utils/api';
 import { mockBacktestResults, isDevelopment } from '../../utils/mockData';
-import BacktestingService, { BacktestConfig as ServiceBacktestConfig } from '../../services/backtestingService';
+import BacktestingService from '../../services/backtestingService';
 
 export interface TradeDetail {
   id?: number;

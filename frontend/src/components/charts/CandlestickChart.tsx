@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Box, Typography, ButtonGroup, Button, FormControlLabel, Switch, Tooltip } from '@mui/material';
 import { createChart, IChartApi, ISeriesApi, LineStyle, CrosshairMode, Time } from 'lightweight-charts';
+import { useTheme } from '../ui/theme-provider';
+import { cn } from '@/lib/utils';
 
 // Define types for candlestick data
 export interface CandlestickData {
@@ -38,10 +39,13 @@ interface CandlestickChartProps {
   data: CandlestickData[];
   title?: string;
   showVolume?: boolean;
-  width?: number;
+  width?: string;
   height?: number;
   indicators?: Indicator[];
   onTimeRangeChange?: (fromTime: number, toTime: number) => void;
+  showGrid?: boolean;
+  showCrosshair?: boolean;
+  className?: string;
 }
 
 // Time ranges for the chart
@@ -60,11 +64,15 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   data,
   title = 'Price Chart',
   showVolume = true,
-  width,
-  height = 500,
+  width = '100%',
+  height = 400,
   indicators = [],
   onTimeRangeChange,
+  showGrid = true,
+  showCrosshair = true,
+  className,
 }) => {
+  const { theme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeries = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -74,6 +82,22 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const [selectedRange, setSelectedRange] = useState('ALL');
   const [hoverData, setHoverData] = useState<CandlestickData | null>(null);
   const [showIndicators, setShowIndicators] = useState(true);
+  
+  // Theme-aware chart colors
+  const chartColors = useMemo(() => ({
+    background: 'transparent',
+    text: `hsl(var(--foreground))`,
+    grid: `hsl(var(--chart-grid))`,
+    border: `hsl(var(--border))`,
+    upColor: `hsl(var(--chart-up))`,
+    downColor: `hsl(var(--chart-down))`,
+    volume: `hsl(var(--chart-volume))`,
+    crosshair: `hsl(var(--chart-crosshair))`,
+    tooltip: {
+      background: `hsl(var(--chart-tooltip-bg))`,
+      border: `hsl(var(--chart-tooltip-border))`,
+    }
+  }), []);
   
   // Filter data for selected time range
   const getFilteredData = useMemo(() => {
@@ -102,7 +126,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const getPriceStats = () => {
     if (!data || data.length === 0) return { change: 0, changePercent: 0, isPositive: false };
     
-    const filteredData = getFilteredData();
+    const filteredData = getFilteredData;
     const firstCandle = filteredData[0];
     const lastCandle = filteredData[filteredData.length - 1];
     
@@ -116,18 +140,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     };
   };
 
-  // Memoize formatted data for candlestick series
-  const formattedData = useMemo(() => 
-    getFilteredData.map((item: CandlestickData) => ({
-      time: item.time as Time,
-      open: item.open,
-      high: item.high,
-      low: item.low,
-      close: item.close,
-    })), 
-    [getFilteredData]
-  );
-
   useEffect(() => {
     if (chartContainerRef.current && data.length > 0) {
       // Remove existing chart if it exists
@@ -136,25 +148,33 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         indicatorSeriesRefs.current.clear();
       }
       
-      const filteredData = getFilteredData();
+      const filteredData = getFilteredData;
       
-      // Create new chart
+      // Create new chart with theme-aware colors
       const chart = createChart(chartContainerRef.current, {
-        width: width || chartContainerRef.current.clientWidth,
-        height: height,
+        width: chartContainerRef.current.clientWidth,
+        height,
         layout: {
-          background: { color: 'transparent' },
-          textColor: '#333',
+          background: { color: chartColors.background },
+          textColor: chartColors.text,
           fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         },
         grid: {
-          vertLines: { color: 'rgba(0, 0, 0, 0.06)', style: LineStyle.Dotted },
-          horzLines: { color: 'rgba(0, 0, 0, 0.06)', style: LineStyle.Dotted },
+          vertLines: { color: showGrid ? chartColors.grid : 'transparent' },
+          horzLines: { color: showGrid ? chartColors.grid : 'transparent' },
         },
         crosshair: {
-          mode: CrosshairMode.Normal,
-          vertLine: { visible: true, labelVisible: true, style: LineStyle.Dashed },
-          horzLine: { visible: true, labelVisible: true },
+          mode: showCrosshair ? CrosshairMode.Normal : CrosshairMode.Magnet,
+          vertLine: {
+            color: chartColors.crosshair,
+            width: 1,
+            style: LineStyle.Dashed,
+          },
+          horzLine: {
+            color: chartColors.crosshair,
+            width: 1,
+            style: LineStyle.Dashed,
+          },
         },
         timeScale: {
           rightOffset: 5,
@@ -162,29 +182,29 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           fixLeftEdge: true,
           lockVisibleTimeRangeOnResize: true,
           rightBarStaysOnScroll: true,
-          borderColor: 'rgba(0, 0, 0, 0.06)',
+          borderColor: chartColors.border,
           timeVisible: true,
           secondsVisible: false,
         },
         rightPriceScale: {
-          borderColor: 'rgba(0, 0, 0, 0.06)',
+          borderColor: chartColors.border,
         },
         handleScroll: {
           vertTouchDrag: false,
         },
       });
       
-      // Add candlestick series
+      // Add candlestick series with theme-aware colors
       const mainSeries = chart.addCandlestickSeries({
-        upColor: '#4CAF50',
-        downColor: '#FF5252',
+        upColor: chartColors.upColor,
+        downColor: chartColors.downColor,
         borderVisible: false,
-        wickUpColor: '#4CAF50',
-        wickDownColor: '#FF5252',
+        wickUpColor: chartColors.upColor,
+        wickDownColor: chartColors.downColor,
       });
       
       // Format and set data
-      const formattedData = getFilteredData().map((item) => ({
+      const formattedData = getFilteredData.map((item) => ({
         time: item.time as Time,
         open: item.open,
         high: item.high,
@@ -195,31 +215,28 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       mainSeries.setData(formattedData);
       candleSeries.current = mainSeries;
       
-      // Add volume histogram if enabled
+      // Add volume histogram if enabled with theme-aware colors
       if (showVolume && filteredData.some(item => item.volume !== undefined)) {
-        // Create volume series with separate price scale
         const volumeHistogram = chart.addHistogramSeries({
-          color: '#26a69a',
+          color: chartColors.volume,
           priceFormat: {
             type: 'volume',
           },
-          priceScaleId: 'volume',
+          priceScaleId: '', // Set to empty string for overlay
         });
         
-        // Format and set volume data
+        // Format and set volume data with theme-aware colors
         const volumeData = filteredData.map((item) => ({
           time: item.time as Time,
           value: item.volume || 0,
-          color: item.close >= item.open ? '#4CAF5080' : '#FF525280',
+          color: (item.close >= item.open) ? chartColors.upColor : chartColors.downColor,
         }));
-        
+
         volumeHistogram.setData(volumeData);
         volumeSeries.current = volumeHistogram;
-        
-        // Create separate price scale for volume
-        chart.priceScale('volume').applyOptions({
+        volumeHistogram.priceScale().applyOptions({
           scaleMargins: {
-            top: 0.8, // Place volume at the bottom 20% of the chart
+            top: 0.8,
             bottom: 0,
           },
         });
@@ -231,7 +248,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           if (indicator.visible) {
             const series = chart.addLineSeries({
               color: indicator.color,
-              lineWidth: indicator.width,
+              lineWidth: ([1, 2, 3, 4].includes(indicator.width) ? indicator.width : 2) as 1 | 2 | 3 | 4,
               lineStyle: indicator.style,
               priceLineVisible: false,
               title: indicator.name,
@@ -281,7 +298,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       const handleResize = () => {
         if (chartContainerRef.current && chart) {
           chart.applyOptions({ 
-            width: width || chartContainerRef.current.clientWidth 
+            width: chartContainerRef.current.clientWidth 
           });
         }
       };
@@ -307,7 +324,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         chart.remove();
       };
     }
-  }, [data, selectedRange, showVolume, width, height, showIndicators, indicators]);
+  }, [data, selectedRange, showVolume, width, height, showIndicators, indicators, chartColors, showGrid, showCrosshair]);
   
   // Format price for display
   const formatPrice = (price?: number) => {
@@ -324,91 +341,80 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const stats = getPriceStats();
   
   return (
-    <Box sx={{ width: '100%' }}>
+    <div className={cn("w-full", className)} style={{ width }}>
       {/* Chart header with title, stats and controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Box>
-          <Typography variant="h6">{title}</Typography>
+      <div className="flex justify-between items-center mb-1">
+        <div>
+          <h6 className="text-base">{title}</h6>
           
           {/* Show price info when hovering over chart */}
           {hoverData ? (
-            <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-              <Typography variant="body2" color="textSecondary">
-                O: <Box component="span" fontWeight="medium">{formatPrice(hoverData.open)}</Box>
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                H: <Box component="span" fontWeight="medium">{formatPrice(hoverData.high)}</Box>
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                L: <Box component="span" fontWeight="medium">{formatPrice(hoverData.low)}</Box>
-              </Typography>
-              <Typography variant="body2" color="textSecondary">
-                C: <Box component="span" fontWeight="medium">{formatPrice(hoverData.close)}</Box>
-              </Typography>
+            <div className="flex gap-2 mt-0.5">
+              <span className="text-sm text-secondary">
+                O: <span className="font-medium">{formatPrice(hoverData.open)}</span>
+              </span>
+              <span className="text-sm text-secondary">
+                H: <span className="font-medium">{formatPrice(hoverData.high)}</span>
+              </span>
+              <span className="text-sm text-secondary">
+                L: <span className="font-medium">{formatPrice(hoverData.low)}</span>
+              </span>
+              <span className="text-sm text-secondary">
+                C: <span className="font-medium">{formatPrice(hoverData.close)}</span>
+              </span>
               {hoverData.volume && (
-                <Typography variant="body2" color="textSecondary">
-                  Vol: <Box component="span" fontWeight="medium">{hoverData.volume.toLocaleString()}</Box>
-                </Typography>
+                <span className="text-sm text-secondary">
+                  Vol: <span className="font-medium">{hoverData.volume.toLocaleString()}</span>
+                </span>
               )}
-            </Box>
+            </div>
           ) : (
-            <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-              <Typography 
-                variant="body2" 
-                color={stats.isPositive ? 'success.main' : 'error.main'}
-                fontWeight="medium"
+            <div className="flex gap-2 mt-0.5">
+              <span 
+                className={`text-sm ${stats.isPositive ? 'text-success-main' : 'text-error-main'} font-medium`}
               >
                 {stats.isPositive ? '+' : ''}{stats.change.toFixed(2)} ({formatPercentage(stats.changePercent)})
-              </Typography>
-            </Box>
+              </span>
+            </div>
           )}
-        </Box>
+        </div>
         
         {/* Chart controls */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <div className="flex items-center gap-2">
           {/* Indicator toggle */}
           {indicators.length > 0 && (
-            <FormControlLabel
-              control={
-                <Switch 
-                  checked={showIndicators}
-                  onChange={(e) => setShowIndicators(e.target.checked)}
-                  size="small"
-                />
-              }
-              label="Indicators"
-              sx={{ mr: 2 }}
-            />
+            <label className="flex items-center">
+              <input 
+                type="checkbox"
+                checked={showIndicators}
+                onChange={(e) => setShowIndicators(e.target.checked)}
+                className="mr-2"
+              />
+              Indicators
+            </label>
           )}
           
           {/* Time range selector */}
-          <ButtonGroup size="small">
+          <div className="btn-group btn-group-sm">
             {timeRanges.map((range) => (
-              <Tooltip key={range.label} title={range.label === 'YTD' ? 'Year to Date' : ''}>
-                <Button 
-                  variant={selectedRange === range.label ? 'contained' : 'outlined'}
-                  onClick={() => setSelectedRange(range.label)}
-                >
-                  {range.label}
-                </Button>
-              </Tooltip>
+              <button 
+                key={range.label}
+                className={`btn ${selectedRange === range.label ? 'btn-contained' : 'btn-outline'}`}
+                onClick={() => setSelectedRange(range.label)}
+              >
+                {range.label}
+              </button>
             ))}
-          </ButtonGroup>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </div>
       
       {/* Main chart container */}
-      <Box 
+      <div 
         ref={chartContainerRef} 
-        sx={{ 
-          width: '100%', 
-          height: height,
-          border: '1px solid rgba(0, 0, 0, 0.12)',
-          borderRadius: 1,
-          overflow: 'hidden',
-        }} 
+        className="w-full h-[500px] border border-gray-100 rounded-lg overflow-hidden" 
       />
-    </Box>
+    </div>
   );
 };
 

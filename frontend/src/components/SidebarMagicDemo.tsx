@@ -14,7 +14,6 @@ import {
   SidebarTrigger,
 } from '@21st-dev/magic';
 
-import React from 'react';
 import {
   User,
   ChevronsUpDown,

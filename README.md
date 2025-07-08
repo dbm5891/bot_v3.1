@@ -54,7 +54,11 @@ cd bot_v3.1
 
 2. Install required packages:
 ```bash
+# On most systems:
 pip install -r requirements.txt
+
+# On Kali Linux or systems with an externally managed Python environment, use:
+pip install --break-system-packages -r requirements.txt
 ```
 
 ## Usage

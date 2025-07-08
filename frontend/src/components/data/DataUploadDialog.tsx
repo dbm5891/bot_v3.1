@@ -1,24 +1,13 @@
 import React, { useState } from 'react';
+import AppIcon from '../icons/AppIcon';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Box,
-  Typography,
-  Alert,
-  LinearProgress,
-  Paper,
-  Grid,
-  useTheme
-} from '@mui/material';
-import AppIcon from '../icons/AppIcon';
+  DialogFooter,
+  DialogClose,
+} from '../ui/dialog';
+import { Alert } from '../ui/alert';
 
 interface DataUploadDialogProps {
   open: boolean;
@@ -34,7 +23,6 @@ const DataUploadDialog: React.FC<DataUploadDialogProps> = ({ open, onClose, onUp
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filePreview, setFilePreview] = useState<string[]>([]);
-  const theme = useTheme();
 
   const timeframeOptions = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'];
   
@@ -113,141 +101,136 @@ const DataUploadDialog: React.FC<DataUploadDialogProps> = ({ open, onClose, onUp
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: theme.shape.borderRadius } }}>
-      <DialogTitle sx={{ pb: 1 }}>
+    <Dialog open={open} onOpenChange={(open) => { if (!open) handleClose(); }}>
+      <DialogTitle>
         Import Market Data
       </DialogTitle>
-      <DialogContent dividers sx={{ p: 2 }}>
+      <DialogContent>
         {error && (
-          <Alert severity="error" sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}>
+          <Alert variant="destructive" className="mb-2">
             {error}
           </Alert>
         )}
         
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" gutterBottom>
+        <div className="mb-2">
+          <h3 className="text-sm font-semibold leading-6 text-gray-900">
             Upload a CSV file with market data
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
+          </h3>
+          <p className="text-xs leading-5 text-gray-500">
             The CSV file should contain columns for date, open, high, low, close, and volume.
             Date format should be in YYYY-MM-DD format or YYYY-MM-DD HH:MM:SS for intraday data.
-          </Typography>
-        </Box>
+          </p>
+        </div>
         
-        <Box sx={{ mb: 3 }}>
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<AppIcon name="UploadCloud" />}
-            sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}
-            fullWidth
+        <div className="mb-3">
+          <button
+            className="flex w-full items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
           >
+            <AppIcon name="UploadCloud" />
             Select File
             <input
               type="file"
+              id="file-upload"
+              name="file"
               hidden
               accept=".csv"
               onChange={handleFileChange}
             />
-          </Button>
+          </button>
           
           {file && (
-            <Typography variant="body2">
+            <p className="text-xs leading-5 text-gray-500">
               Selected file: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
         
         {filePreview.length > 0 && (
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 2, 
-              mb: 3, 
-              maxHeight: 200, 
-              overflow: 'auto', 
-              borderRadius: theme.shape.borderRadius
-            }}
-          >
-            <Typography variant="subtitle2" gutterBottom>File Preview:</Typography>
+          <div className="mb-3 max-h-[200px] overflow-auto rounded-lg border border-gray-200">
+            <h4 className="text-sm font-semibold leading-6 text-gray-900">File Preview:</h4>
             {filePreview.map((line, i) => (
-              <Box key={i} sx={{ 
-                fontFamily: 'monospace', 
-                fontSize: '0.8rem',
-                whiteSpace: 'pre',
-                overflowX: 'auto'
-              }}>
+              <div key={i} className="whitespace-pre font-mono text-sm">
                 {line}
-              </Box>
+              </div>
             ))}
-          </Paper>
+          </div>
         )}
         
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              label="Symbol"
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 sm:col-span-4">
+            <label htmlFor="symbol" className="block text-sm font-medium leading-6 text-gray-900">
+              Symbol
+            </label>
+            <input
+              type="text"
+              id="symbol"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              fullWidth
+              className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
               required
-              helperText="E.g. AAPL, MSFT, SPY"
-              sx={{ borderRadius: theme.shape.borderRadius }}
+              placeholder="E.g. AAPL, MSFT, SPY"
             />
-          </Grid>
+          </div>
           
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth required>
-              <InputLabel>Timeframe</InputLabel>
-              <Select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value as string)}
-                label="Timeframe"
-                sx={{ borderRadius: theme.shape.borderRadius }}
-              >
-                {timeframeOptions.map((tf) => (
-                  <MenuItem key={tf} value={tf}>{tf}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
+          <div className="col-span-12 sm:col-span-4">
+            <label htmlFor="timeframe" className="block text-sm font-medium leading-6 text-gray-900">
+              Timeframe
+            </label>
+            <select
+              id="timeframe"
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value as string)}
+              className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+              required
+            >
+              {timeframeOptions.map((tf) => (
+                <option key={tf} value={tf}>{tf}</option>
+              ))}
+            </select>
+          </div>
           
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth>
-              <InputLabel>Source</InputLabel>
-              <Select
-                value={source}
-                onChange={(e) => setSource(e.target.value as string)}
-                label="Source"
-                sx={{ borderRadius: theme.shape.borderRadius }}
-              >
-                <MenuItem value="csv">CSV Import</MenuItem>
-                <MenuItem value="yahoo">Yahoo Finance</MenuItem>
-                <MenuItem value="tdameritrade">TD Ameritrade</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
+          <div className="col-span-12 sm:col-span-4">
+            <label htmlFor="source" className="block text-sm font-medium leading-6 text-gray-900">
+              Source
+            </label>
+            <select
+              id="source"
+              name="source"
+              value={source}
+              onChange={(e) => setSource(e.target.value as string)}
+              className="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+            >
+              <option value="csv">CSV Import</option>
+              <option value="yahoo">Yahoo Finance</option>
+              <option value="tdameritrade">TD Ameritrade</option>
+            </select>
+          </div>
+        </div>
         
         {uploading && (
-          <Box sx={{ width: '100%', mt: 2 }}>
-            <LinearProgress />
-          </Box>
+          <div className="w-full mt-2">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-indigo-600" style={{ width: '100%' }}></div>
+            </div>
+          </div>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: 2 }}>
-        <Button onClick={handleClose} disabled={uploading} color="inherit" variant="text">
+      <DialogFooter>
+        <button
+          onClick={handleClose}
+          disabled={uploading}
+          className="text-sm font-semibold leading-6 text-gray-900"
+        >
           Cancel
-        </Button>
-        <Button 
+        </button>
+        <button 
           onClick={handleSubmit} 
-          variant="contained"
-          color="primary"
+          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           disabled={!file || !symbol || !timeframe || uploading}
         >
           {uploading ? 'Uploading...' : 'Import Data'}
-        </Button>
-      </DialogActions>
+        </button>
+      </DialogFooter>
     </Dialog>
   );
 };

@@ -1,16 +1,41 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Paper, ToggleButtonGroup, ToggleButton, Typography } from '@mui/material';
-import { createChart, IChartApi, LineStyle } from 'lightweight-charts';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { createChart, IChartApi } from 'lightweight-charts';
 import { BacktestResult } from '../../store/slices/backtestingSlice';
+import { useTheme } from '../../components/ui/theme-provider';
+import { Button } from '../../components/ui/button';
+import { cn } from '../../lib/utils';
 
 interface BacktestingChartProps {
   backtest: BacktestResult;
 }
 
 const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
+  const { theme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const [chartType, setChartType] = useState<'equity' | 'drawdown' | 'trades'>('equity');
+
+  // Theme-aware chart colors
+  const chartColors = useMemo(() => ({
+    background: 'transparent',
+    text: theme === 'dark' ? '#E1E1E6' : '#1A1A1A',
+    grid: theme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
+    border: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    equity: {
+      line: theme === 'dark' ? '#3B82F6' : '#2962FF',
+      topColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.4)' : 'rgba(41, 98, 255, 0.56)',
+      bottomColor: theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(41, 98, 255, 0.04)',
+    },
+    drawdown: {
+      line: theme === 'dark' ? '#EF4444' : '#F44336',
+      topColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(244, 67, 54, 0.04)',
+      bottomColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(244, 67, 54, 0.56)',
+    },
+    trades: {
+      long: theme === 'dark' ? '#22C55E' : '#4CAF50',
+      short: theme === 'dark' ? '#EF4444' : '#F44336',
+    },
+  }), [theme]);
 
   // Generate equity curve from trades
   const generateEquityCurve = () => {
@@ -21,12 +46,12 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
     }];
 
     // Sort trades chronologically
-    const sortedTrades = [...backtest.trades].sort(
+    const sortedTrades = Array.isArray(backtest.trades) ? [...backtest.trades].sort(
       (a, b) => new Date(a.exitDate).getTime() - new Date(b.exitDate).getTime()
-    );
+    ) : [];
 
     // Add equity points for each trade
-    sortedTrades.forEach(trade => {
+    sortedTrades.forEach((trade: any) => {
       equity += trade.profit;
       equityCurve.push({
         time: new Date(trade.exitDate).toISOString().split('T')[0],
@@ -42,10 +67,13 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
     const equityCurve = generateEquityCurve();
     let peakEquity = backtest.initialCapital;
     
-    return equityCurve.map(point => {
-      peakEquity = Math.max(peakEquity, point.value);
+    return equityCurve.map((point: any) => {
+      if (typeof point.value !== 'number') return { ...point, value: 0 };
+      peakEquity = Math.max(
+        typeof peakEquity === 'number' ? peakEquity : 0,
+        typeof point.value === 'number' ? point.value : 0
+      );
       const drawdown = peakEquity > 0 ? (peakEquity - point.value) / peakEquity : 0;
-      
       return {
         time: point.time,
         value: drawdown * -100, // Negative percentage for visualization
@@ -53,58 +81,50 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
     });
   };
 
-  // Generate trade points
+  // Update trade points with theme colors
   const generateTradePoints = () => {
-    const longEntries = backtest.trades
-      .filter(t => t.direction === 'long')
-      .map(t => ({
+    const trades = Array.isArray(backtest.trades) ? backtest.trades : [];
+    const longEntries = trades
+      .filter((t: any) => t.direction === 'long')
+      .map((t: any) => ({
         time: new Date(t.entryDate).toISOString().split('T')[0],
-        position: 'belowBar',
-        color: '#4CAF50',
-        shape: 'arrowUp',
+        position: 'belowBar' as const,
+        color: chartColors.trades.long,
+        shape: 'arrowUp' as const,
         text: 'LONG'
       }));
 
-    const longExits = backtest.trades
-      .filter(t => t.direction === 'long')
-      .map(t => ({
+    const longExits = trades
+      .filter((t: any) => t.direction === 'long')
+      .map((t: any) => ({
         time: new Date(t.exitDate).toISOString().split('T')[0],
-        position: 'aboveBar',
-        color: '#4CAF50',
-        shape: 'arrowDown',
+        position: 'aboveBar' as const,
+        color: chartColors.trades.long,
+        shape: 'arrowDown' as const,
         text: 'EXIT'
       }));
 
-    const shortEntries = backtest.trades
-      .filter(t => t.direction === 'short')
-      .map(t => ({
+    const shortEntries = trades
+      .filter((t: any) => t.direction === 'short')
+      .map((t: any) => ({
         time: new Date(t.entryDate).toISOString().split('T')[0],
-        position: 'aboveBar',
-        color: '#F44336',
-        shape: 'arrowDown',
+        position: 'aboveBar' as const,
+        color: chartColors.trades.short,
+        shape: 'arrowDown' as const,
         text: 'SHORT'
       }));
 
-    const shortExits = backtest.trades
-      .filter(t => t.direction === 'short')
-      .map(t => ({
+    const shortExits = trades
+      .filter((t: any) => t.direction === 'short')
+      .map((t: any) => ({
         time: new Date(t.exitDate).toISOString().split('T')[0],
-        position: 'belowBar',
-        color: '#F44336',
-        shape: 'arrowUp',
+        position: 'belowBar' as const,
+        color: chartColors.trades.short,
+        shape: 'arrowUp' as const,
         text: 'EXIT'
       }));
 
     return [...longEntries, ...longExits, ...shortEntries, ...shortExits];
-  };
-
-  const handleChartTypeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newType: 'equity' | 'drawdown' | 'trades' | null,
-  ) => {
-    if (newType !== null) {
-      setChartType(newType);
-    }
   };
 
   useEffect(() => {
@@ -119,26 +139,34 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
         width: chartContainerRef.current.clientWidth,
         height: 400,
         layout: {
-          background: { color: 'transparent' },
-          textColor: '#D9D9D9',
+          background: { color: chartColors.background },
+          textColor: chartColors.text,
         },
         grid: {
           vertLines: {
-            color: 'rgba(197, 203, 206, 0.1)',
+            color: chartColors.grid,
           },
           horzLines: {
-            color: 'rgba(197, 203, 206, 0.1)',
+            color: chartColors.grid,
           },
         },
         rightPriceScale: {
-          borderColor: 'rgba(197, 203, 206, 0.8)',
+          borderColor: chartColors.border,
         },
         timeScale: {
-          borderColor: 'rgba(197, 203, 206, 0.8)',
+          borderColor: chartColors.border,
           timeVisible: true,
         },
         crosshair: {
           mode: 0,
+          vertLine: {
+            color: chartColors.text,
+            labelBackgroundColor: chartColors.background,
+          },
+          horzLine: {
+            color: chartColors.text,
+            labelBackgroundColor: chartColors.background,
+          },
         },
       });
 
@@ -153,9 +181,9 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
       let series;
       if (chartType === 'equity') {
         series = chart.addAreaSeries({
-          lineColor: '#2962FF',
-          topColor: 'rgba(41, 98, 255, 0.56)',
-          bottomColor: 'rgba(41, 98, 255, 0.04)',
+          lineColor: chartColors.equity.line,
+          topColor: chartColors.equity.topColor,
+          bottomColor: chartColors.equity.bottomColor,
           lineWidth: 2,
           priceFormat: {
             type: 'price',
@@ -166,9 +194,9 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
         series.setData(generateEquityCurve());
       } else if (chartType === 'drawdown') {
         series = chart.addAreaSeries({
-          lineColor: '#F44336',
-          topColor: 'rgba(244, 67, 54, 0.04)',
-          bottomColor: 'rgba(244, 67, 54, 0.56)',
+          lineColor: chartColors.drawdown.line,
+          topColor: chartColors.drawdown.topColor,
+          bottomColor: chartColors.drawdown.bottomColor,
           lineWidth: 2,
           priceFormat: {
             type: 'percent',
@@ -177,16 +205,13 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
         });
         series.setData(generateDrawdownCurve());
       } else if (chartType === 'trades') {
-        // For trades view, show both equity and trade markers
         series = chart.addAreaSeries({
-          lineColor: '#2962FF',
-          topColor: 'rgba(41, 98, 255, 0.56)',
-          bottomColor: 'rgba(41, 98, 255, 0.04)',
+          lineColor: chartColors.equity.line,
+          topColor: chartColors.equity.topColor,
+          bottomColor: chartColors.equity.bottomColor,
           lineWidth: 2,
         });
         series.setData(generateEquityCurve());
-        
-        // Add trade markers
         series.setMarkers(generateTradePoints());
       }
 
@@ -199,25 +224,44 @@ const BacktestingChart: React.FC<BacktestingChartProps> = ({ backtest }) => {
         chart.remove();
       };
     }
-  }, [backtest, chartType]);
+  }, [backtest, chartType, chartColors]);
 
   return (
-    <Paper sx={{ p: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
-        <Typography variant="subtitle1">Performance Visualization</Typography>
-        <ToggleButtonGroup
-          value={chartType}
-          exclusive
-          onChange={handleChartTypeChange}
-          size="small"
+    <div>
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={chartType === 'equity' ? 'secondary' : 'outline'}
+          onClick={() => setChartType('equity')}
+          className={cn(
+            "flex-1",
+            chartType === 'equity' && "bg-secondary text-secondary-foreground"
+          )}
         >
-          <ToggleButton value="equity">Equity Curve</ToggleButton>
-          <ToggleButton value="drawdown">Drawdown</ToggleButton>
-          <ToggleButton value="trades">Trades</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-      <Box ref={chartContainerRef} sx={{ height: 400 }} />
-    </Paper>
+          Equity Curve
+        </Button>
+        <Button
+          variant={chartType === 'drawdown' ? 'secondary' : 'outline'}
+          onClick={() => setChartType('drawdown')}
+          className={cn(
+            "flex-1",
+            chartType === 'drawdown' && "bg-secondary text-secondary-foreground"
+          )}
+        >
+          Drawdown
+        </Button>
+        <Button
+          variant={chartType === 'trades' ? 'secondary' : 'outline'}
+          onClick={() => setChartType('trades')}
+          className={cn(
+            "flex-1",
+            chartType === 'trades' && "bg-secondary text-secondary-foreground"
+          )}
+        >
+          Trades
+        </Button>
+      </div>
+      <div ref={chartContainerRef} className="w-full" />
+    </div>
   );
 };
 

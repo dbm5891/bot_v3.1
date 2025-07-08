@@ -1,4 +1,3 @@
-import React from 'react';
 import { Sidebar, SidebarProvider, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from '@21st-dev/magic';
 import { Home, Settings, User } from 'lucide-react';
 

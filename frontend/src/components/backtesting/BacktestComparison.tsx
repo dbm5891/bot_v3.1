@@ -1,38 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  CardHeader,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Typography,
-  Stack,
-  IconButton,
-  Paper,
-  Tooltip,
-  Alert,
-  CircularProgress,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from '@mui/material';
-import { 
-  Delete as DeleteIcon, 
-  BarChart as BarChartIcon,
-  SwapVert as SwapVertIcon,
-  Info as InfoIcon,
-  GetApp as DownloadIcon
-} from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 
 // Interface to match the mapped data we're providing
 interface BacktestResult {
@@ -88,18 +54,8 @@ const BacktestComparison: React.FC<BacktestComparisonProps> = ({
   onViewDetails,
   onExportData
 }) => {
-  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<string>('totalReturns');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-  const handleSort = (metric: string) => {
-    if (sortBy === metric) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(metric);
-      setSortDirection('desc');
-    }
-  };
 
   const sortedBacktests = useMemo(() => {
     if (!backtests || backtests.length === 0) return [];
@@ -169,113 +125,135 @@ const BacktestComparison: React.FC<BacktestComparisonProps> = ({
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
+      <div className="flex justify-center p-4">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+      </div>
     );
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">{error}</div>;
   }
 
   if (!backtests || backtests.length === 0) {
     return (
-      <Alert severity="info">
+      <div className="bg-info text-info-content p-4 rounded">
         No backtests available for comparison. Run multiple backtests to compare their results.
-      </Alert>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader 
-        title="Backtest Comparison" 
-        action={
-          <Stack direction="row" spacing={1}>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="sort-by-label">Sort By</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                id="sort-by-select"
-                value={sortBy}
-                label="Sort By"
-                onChange={(e) => setSortBy(e.target.value)}
-                size="small"
-              >
-                {compareOptions.map(option => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <IconButton onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}>
-              <SwapVertIcon />
-            </IconButton>
-            {onExportData && (
-              <Tooltip title="Export comparison data">
-                <IconButton onClick={() => onExportData('csv')}>
-                  <DownloadIcon />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Stack>
-        }
-      />
-      <Divider />
-      <CardContent sx={{ p: 0 }}>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Strategy</TableCell>
-                <TableCell>Symbol</TableCell>
-                <TableCell>Timeframe</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <div className="bg-base-100 shadow-md rounded-lg">
+      <div className="flex justify-between items-center p-4">
+        <div className="flex items-center space-x-2">
+          <select
+            className="select select-bordered select-primary w-full max-w-xs"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            {compareOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <div className="tooltip tooltip-primary" data-tip="Sort direction">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {onExportData && (
+          <div className="tooltip tooltip-primary" data-tip="Export comparison data">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => onExportData('csv')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="p-0">
+        <div className="overflow-x-auto">
+          <table className="table table-compact w-full">
+            <thead>
+              <tr>
+                <th>Strategy</th>
+                <th>Symbol</th>
+                <th>Timeframe</th>
+                <th>
+                  <div className="flex items-center">
                     Total Returns
-                    <Tooltip title={metricDefinitions.totalReturns}>
-                      <IconButton size="small"><InfoIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="tooltip tooltip-primary" data-tip={metricDefinitions.totalReturns}>
+                      <button className="btn btn-ghost btn-xs btn-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div className="flex items-center">
                     Sharpe Ratio
-                    <Tooltip title={metricDefinitions.sharpeRatio}>
-                      <IconButton size="small"><InfoIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="tooltip tooltip-primary" data-tip={metricDefinitions.sharpeRatio}>
+                      <button className="btn btn-ghost btn-xs btn-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div className="flex items-center">
                     Max Drawdown
-                    <Tooltip title={metricDefinitions.maxDrawdown}>
-                      <IconButton size="small"><InfoIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="tooltip tooltip-primary" data-tip={metricDefinitions.maxDrawdown}>
+                      <button className="btn btn-ghost btn-xs btn-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div className="flex items-center">
                     Win Rate
-                    <Tooltip title={metricDefinitions.winRate}>
-                      <IconButton size="small"><InfoIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <div className="tooltip tooltip-primary" data-tip={metricDefinitions.winRate}>
+                      <button className="btn btn-ghost btn-xs btn-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+                <th>
+                  <div className="flex items-center">
                     Profit Factor
-                    <Tooltip title={metricDefinitions.profitFactor}>
-                      <IconButton size="small"><InfoIcon fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+                    <div className="tooltip tooltip-primary" data-tip={metricDefinitions.profitFactor}>
+                      <button className="btn btn-ghost btn-xs btn-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {sortedBacktests.map((backtest) => {
                 const bestTotalReturns = getBestValue('totalReturns');
                 const bestSharpe = getBestValue('sharpeRatio');
@@ -284,112 +262,98 @@ const BacktestComparison: React.FC<BacktestComparisonProps> = ({
                 const bestProfitFactor = getBestValue('profitFactor');
 
                 return (
-                  <TableRow key={backtest.id} hover>
-                    <TableCell>
-                      <Typography variant="body2">{backtest.strategyName}</Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        {new Date(backtest.date).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{backtest.symbol}</TableCell>
-                    <TableCell>{backtest.timeframe}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2" 
-                          color={backtest.totalReturns >= 0 ? 'success.main' : 'error.main'}
-                          fontWeight={backtest.id === bestTotalReturns ? 'bold' : 'normal'}
-                        >
+                  <tr key={backtest.id} className="hover">
+                    <td>
+                      <div className="font-normal">{backtest.strategyName}</div>
+                      <div className="text-sm text-gray-500">{new Date(backtest.date).toLocaleDateString()}</div>
+                    </td>
+                    <td>{backtest.symbol}</td>
+                    <td>{backtest.timeframe}</td>
+                    <td>
+                      <div className="flex items-center">
+                        <div className={`font-normal ${backtest.totalReturns >= 0 ? 'text-success' : 'text-error'} ${backtest.id === bestTotalReturns ? 'font-bold' : ''}`}>
                           {formatValue(backtest.totalReturns, 'totalReturns')}
-                        </Typography>
+                        </div>
                         {backtest.id === bestTotalReturns && (
-                          <Chip size="small" label="Best" color="primary" sx={{ ml: 1, height: 16, fontSize: '0.6rem' }} />
+                          <div className="ml-2 text-success text-sm font-bold">Best</div>
                         )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2" 
-                          fontWeight={backtest.id === bestSharpe ? 'bold' : 'normal'}
-                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <div className={`font-normal ${backtest.id === bestSharpe ? 'font-bold' : ''}`}>
                           {formatValue(backtest.sharpeRatio, 'sharpeRatio')}
-                        </Typography>
+                        </div>
                         {backtest.id === bestSharpe && (
-                          <Chip size="small" label="Best" color="primary" sx={{ ml: 1, height: 16, fontSize: '0.6rem' }} />
+                          <div className="ml-2 text-success text-sm font-bold">Best</div>
                         )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2" 
-                          color="error"
-                          fontWeight={backtest.id === bestDrawdown ? 'bold' : 'normal'}
-                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <div className={`font-normal ${backtest.id === bestDrawdown ? 'font-bold' : ''}`}>
                           {formatValue(backtest.maxDrawdown, 'maxDrawdown')}
-                        </Typography>
+                        </div>
                         {backtest.id === bestDrawdown && (
-                          <Chip size="small" label="Best" color="primary" sx={{ ml: 1, height: 16, fontSize: '0.6rem' }} />
+                          <div className="ml-2 text-success text-sm font-bold">Best</div>
                         )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2"
-                          fontWeight={backtest.id === bestWinRate ? 'bold' : 'normal'}
-                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <div className={`font-normal ${backtest.id === bestWinRate ? 'font-bold' : ''}`}>
                           {formatValue(backtest.winRate, 'winRate')}
-                        </Typography>
+                        </div>
                         {backtest.id === bestWinRate && (
-                          <Chip size="small" label="Best" color="primary" sx={{ ml: 1, height: 16, fontSize: '0.6rem' }} />
+                          <div className="ml-2 text-success text-sm font-bold">Best</div>
                         )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body2"
-                          fontWeight={backtest.id === bestProfitFactor ? 'bold' : 'normal'}
-                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center">
+                        <div className={`font-normal ${backtest.id === bestProfitFactor ? 'font-bold' : ''}`}>
                           {formatValue(backtest.profitFactor, 'profitFactor')}
-                        </Typography>
+                        </div>
                         {backtest.id === bestProfitFactor && (
-                          <Chip size="small" label="Best" color="primary" sx={{ ml: 1, height: 16, fontSize: '0.6rem' }} />
+                          <div className="ml-2 text-success text-sm font-bold">Best</div>
                         )}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <Tooltip title="View details">
-                          <IconButton 
-                            size="small" 
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center space-x-2">
+                        <div className="tooltip tooltip-primary" data-tip="View details">
+                          <button
+                            className="btn btn-ghost btn-xs btn-circle"
                             onClick={() => onViewDetails && onViewDetails(backtest.id)}
                           >
-                            <BarChartIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </button>
+                        </div>
                         {onRemoveBacktest && (
-                          <Tooltip title="Remove from comparison">
-                            <IconButton 
-                              size="small" 
+                          <div className="tooltip tooltip-primary" data-tip="Remove from comparison">
+                            <button
+                              className="btn btn-ghost btn-xs btn-circle"
                               onClick={() => onRemoveBacktest(backtest.id)}
                             >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
                         )}
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
+                      </div>
+                    </td>
+                  </tr>
                 );
               })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </CardContent>
-    </Card>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 };
 

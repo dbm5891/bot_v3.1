@@ -4,9 +4,9 @@ import { ChartOptions, ChartType } from 'chart.js';
 /**
  * Creates TradingView-inspired chart configuration for Chart.js
  */
-export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(type: TType): ChartOptions<TType> => {
+export const createChartConfig = (type: ChartType): ChartOptions<ChartType> => {
   // Base config for all chart types
-  const baseConfig: ChartOptions<TType> = {
+  const baseConfig = {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
@@ -20,7 +20,7 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
         bottom: 0,
       },
     },
-    scales: {
+    scales: type !== 'pie' ? {
       x: {
         grid: {
           color: colors.chart.grid,
@@ -57,7 +57,7 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
             family: '"Inter", sans-serif',
           },
           padding: 8,
-          callback: function(value: any) {
+          callback: function(value: number) {
             // Format numbers to be more readable
             if (value >= 1000000) {
               return '$' + (value / 1000000).toFixed(1) + 'M';
@@ -69,7 +69,7 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
           },
         },
       },
-    },
+    } : undefined,
     interaction: {
       mode: 'index',
       intersect: false,
@@ -87,14 +87,14 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
         titleFont: {
           family: '"Inter", sans-serif',
           size: 12,
-          weight: '600',
+          weight: 'bold',
         },
         bodyFont: {
           family: '"Inter", sans-serif',
           size: 12,
         },
         callbacks: {
-          label: function(context) {
+          label: function(context: any) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
@@ -129,7 +129,7 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
         display: false,
       },
     },
-  };
+  } as const;
 
   // Line chart specific configurations
   if (type === 'line') {
@@ -137,7 +137,7 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
       ...baseConfig,
       elements: {
         line: {
-          tension: 0.3, // Slightly curved lines
+          tension: 0.3,
           borderWidth: 2,
           fill: 'start',
           backgroundColor: (context: any) => {
@@ -150,15 +150,15 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
           borderColor: colors.chart.line,
         },
         point: {
-          radius: 0, // Hide points by default
-          hoverRadius: 5, // Show on hover
+          radius: 0,
+          hoverRadius: 5,
           backgroundColor: colors.chart.line,
           borderColor: colors.background.paper,
           borderWidth: 2,
           hitRadius: 30,
         },
       },
-    };
+    } as ChartOptions<'line'>;
   }
 
   // Bar chart specific configurations
@@ -176,11 +176,25 @@ export const createChartConfig = <TType extends 'line' | 'bar' | 'candlestick'>(
           borderRadius: 3,
         },
       },
-    };
+    } as ChartOptions<'bar'>;
+  }
+
+  // Pie chart specific configurations
+  if (type === 'pie') {
+    return {
+      ...baseConfig,
+      plugins: {
+        ...baseConfig.plugins,
+        legend: {
+          ...baseConfig.plugins.legend,
+          position: 'bottom',
+        },
+      },
+    } as ChartOptions<'pie'>;
   }
 
   // Default
-  return baseConfig;
+  return baseConfig as ChartOptions<ChartType>;
 };
 
 /**
