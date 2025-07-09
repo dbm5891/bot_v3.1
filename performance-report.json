@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-07-08T19:36:53.961Z",
+  "tests": {
+    "bundleSize": {
+      "status": "ERROR",
+      "error": "Command failed: npm run build\nnpm error Missing script: \"build\"\nnpm error\nnpm error To see a list of scripts, run:\nnpm error   npm run\nnpm error A complete log of this run can be found in: /home/ubuntu/.npm/_logs/2025-07-08T19_36_54_011Z-debug-0.log\n"
+    },
+    "memoryUsage": {
+      "status": "ERROR",
+      "error": "Command failed: npx tsc --noEmit --listFiles 2>&1"
+    },
+    "networkPerformance": {
+      "status": "PASS",
+      "averageResponseTime": 0,
+      "tests": [
+        {
+          "name": "Health Check",
+          "status": "ERROR",
+          "error": "Cannot find module 'node-fetch'\nRequire stack:\n- /workspace/performance-tests.js"
+        },
+        {
+          "name": "Strategies",
+          "status": "ERROR",
+          "error": "Cannot find module 'node-fetch'\nRequire stack:\n- /workspace/performance-tests.js"
+        },
+        {
+          "name": "Symbols",
+          "status": "ERROR",
+          "error": "Cannot find module 'node-fetch'\nRequire stack:\n- /workspace/performance-tests.js"
+        }
+      ],
+      "recommendations": [
+        "Failed network tests: Health Check, Strategies, Symbols"
+      ]
+    },
+    "lighthouse": {
+      "status": "SKIP",
+      "message": "Lighthouse dependencies not installed"
+    }
+  },
+  "summary": {
+    "totalTests": 4,
+    "passedTests": 1,
+    "failedTests": 0,
+    "errorTests": 2,
+    "successRate": 25
+  },
+  "recommendations": [
+    "Failed network tests: Health Check, Strategies, Symbols"
+  ]
+}

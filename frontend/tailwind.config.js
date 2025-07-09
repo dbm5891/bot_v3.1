@@ -1,9 +1,48 @@
 module.exports = {
-  darkMode: ['class', 'class'],
+  darkMode: ['class'],
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}"
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.html",
+    "!./src/**/*.test.{js,ts,jsx,tsx}",
+    "!./src/**/*.spec.{js,ts,jsx,tsx}"
   ],
+  // Optimize for production builds
+  mode: 'jit',
+  // Enable CSS purging for production
+  ...(process.env.NODE_ENV === 'production' && {
+    purge: {
+      enabled: true,
+      content: [
+        "./index.html",
+        "./src/**/*.{js,ts,jsx,tsx}",
+      ],
+      options: {
+        safelist: [
+          // Keep animations and dynamic classes
+          /^animate-/,
+          /^transition-/,
+          /^duration-/,
+          /^ease-/,
+          /^delay-/,
+          // Keep hover and focus states
+          /^hover:/,
+          /^focus:/,
+          /^active:/,
+          // Keep responsive classes
+          /^sm:/,
+          /^md:/,
+          /^lg:/,
+          /^xl:/,
+          /^2xl:/,
+          // Keep dark mode classes
+          /^dark:/,
+        ],
+        keyframes: true,
+        fontFace: true,
+      },
+    },
+  }),
   theme: {
   	extend: {
 		fontFamily: {
